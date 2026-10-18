@@ -13,7 +13,7 @@ implementation: when in doubt about a field, check what the mock returns.
 
 | Topic | Rule |
 | --- | --- |
-| Base URL | `/api/v1` on the **same domain** as the frontend (nginx proxies `/api/` to the backend, see `deploy/nginx.conf`). Same origin = no CORS and the refresh cookie works. |
+| Base URL | `https://api.example.com/api/v1` when frontend and backend are on separate VMs. The frontend sends credentialed CORS requests and the backend allows only the frontend origin. |
 | Format | JSON request and response bodies, `Content-Type: application/json`. |
 | Dates | ISO date strings `YYYY-MM-DD` (user's local date). Timestamps ISO 8601 UTC (`2026-10-17T09:00:00Z`). |
 | Units | Metric only: kg, cm, minutes, km, kcal, grams, liters, hours. |

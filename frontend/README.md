@@ -4,14 +4,13 @@ Health web app: log workouts and meals, get AI recommendations, and compare your
 assigned network of similar people. This repository contains the **complete frontend** (plain HTML, CSS and
 JavaScript – no build step) plus the **documentation the backend team needs**.
 
-The backend (Python + PostgreSQL + Claude/OpenAI API) is **not built yet**. Until then a mock backend runs inside the
+The backend (Python Flask + PostgreSQL + Claude/OpenAI API) is provided in `../backend`. Until then a mock backend runs inside the
 browser, so every page already works end to end (data is stored in `localStorage`).
 
 | Document | For whom | Content |
 | --- | --- | --- |
 | [docs/API.md](docs/API.md) | Backend developer | Every endpoint with request/response JSON, validation and errors |
 | [docs/BACKEND.md](docs/BACKEND.md) | Backend developer | Architecture, database tables, business rules, network assignment, AI prompts, security |
-| [deploy/](deploy/) | Whoever deploys | nginx config + setup script for a Google Cloud VM |
 
 ---
 
@@ -69,7 +68,6 @@ assets/js/pages/*.js                       one script per page
 assets/js/mock/                            in-browser mock backend (delete when the real API is live)
 assets/data/sports.json                    seed list of sports with MET values
 docs/                                      API contract + backend specification
-deploy/                                    nginx config + VM setup script
 ```
 
 Conventions: all text from users or the backend is escaped with `esc()` before it is put into HTML; every form shows
@@ -77,34 +75,19 @@ backend validation errors under the field named in the error response; buttons s
 
 ---
 
-## Deploy on a Google Cloud VM
+## Run on the frontend VM
 
-Prerequisites: a Google Cloud project with billing and the `gcloud` CLI (or use the Cloud Console and its SSH button).
+Open TCP 8080 in the Google Cloud firewall and run:
 
 ```bash
-# 1. Create a small VM (Zurich region) and allow HTTP/HTTPS
-gcloud compute instances create activ-ate-web \
-  --zone=europe-west6-a --machine-type=e2-small \
-  --image-family=debian-12 --image-project=debian-cloud \
-  --tags=http-server,https-server
-gcloud compute firewall-rules create allow-web --allow=tcp:80,tcp:443 --target-tags=http-server,https-server
-#    (skip the firewall command if the rule already exists in your project)
-
-# 2. Copy the project to the VM
-zip -r activ-ate-frontend.zip activ-ate-frontend
-gcloud compute scp activ-ate-frontend.zip activ-ate-web:~ --zone=europe-west6-a
-
-# 3. Install on the VM
-gcloud compute ssh activ-ate-web --zone=europe-west6-a
-sudo apt-get install -y unzip && unzip -o activ-ate-frontend.zip && cd activ-ate-frontend
-sudo bash deploy/setup-vm.sh                                   # http://<external-ip>/
-# with a domain pointing to the VM's IP, also get HTTPS:
-sudo bash deploy/setup-vm.sh activ-ate.example.com you@example.com
+python3 -m http.server 8080 --bind 0.0.0.0
 ```
 
-Updating later: copy the new zip, unzip, run `sudo bash deploy/setup-vm.sh` again (it syncs the files and reloads nginx).
-
-Notes:
-- An `e2-micro` VM is in Google's free tier only in some US regions (`us-west1`, `us-central1`, `us-east1`); in Zurich use `e2-small` (small monthly cost). Check current prices in the Google Cloud pricing calculator.
-- In mock mode each visitor has their own data in their own browser – fine for demos, not a real multi-user app.
-- When the backend runs on the same VM (FastAPI on `127.0.0.1:8000`), uncomment the `location /api/` block in `deploy/nginx.conf`, set `USE_MOCK_API: false` in `assets/js/config.js` and run the setup script again. See docs/BACKEND.md §8.
+Set `API_BASE_URL` to `http://<backend-vm-ip>:8000/api/v1` and
+`USE_MOCK_API` to `false` in `assets/js/config.js`. This HTTP setup is only
+for demo data.
+- For the basic two-VM demo, expose Flask on the backend VM port
+  `8000`, set `API_BASE_URL` to `http://<backend-ip>:8000/api/v1`, and set
+  `USE_MOCK_API: false`. Configure CORS as described in `backend/README.md`.
+  This HTTP setup is for demo data only; use HTTPS before handling real user
+  information.

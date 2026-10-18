@@ -9,29 +9,25 @@ The frontend is finished and talks to the API through `assets/js/api.js`; the in
 ## 1. Target architecture
 
 ```
-Browser (static HTML/CSS/JS)  ──HTTPS──▶  nginx on Google Cloud VM
-                                            ├── /            → static files (this repo)
-                                            └── /api/        → proxy to FastAPI (uvicorn, 127.0.0.1:8000)
+Browser (static HTML/CSS/JS)  ──HTTP──▶  Flask on the backend VM
+                                        └── PostgreSQL (private network)
                                                                  ├── PostgreSQL (Cloud SQL or local on VM)
                                                                  ├── LLM API (Claude or OpenAI) – only from backend
                                                                  └── Email service (password reset)
 ```
 
-Recommended stack: **Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, passlib[argon2], PyJWT, httpx**, the official
-`anthropic` or `openai` SDK. Run with `uvicorn` behind nginx (systemd service) on the same VM as the frontend, or on Cloud Run.
+The supplied implementation uses **Python 3.11+, Flask, psycopg 3, PyJWT and Werkzeug**.
+For the basic demo, run Flask directly on the backend VM.
 
-Suggested project layout:
+Project layout:
 
 ```
 backend/
-  app/main.py              # FastAPI app, routers, CORS off (same origin), error handler → {error,message,field}
-  app/config.py            # settings from env: DATABASE_URL, JWT_SECRET, LLM_API_KEY, LLM_MODEL, SMTP_*
-  app/auth/                # register, login, refresh, logout, reset
-  app/routers/             # me.py, sports.py, dashboard.py, workouts.py, nutrition.py, community.py, coach.py
-  app/services/            # targets.py, streaks.py, network.py, calories.py, ai.py (all LLM calls in one place)
-  app/models.py            # SQLAlchemy models
-  alembic/                 # migrations
-  scripts/import_sports.py # loads the sports list (CSV/JSON) into the sports table
+  app.py                   # Flask app and Blueprint registry
+  config.py                # database, CORS and server settings
+  api/                     # routes grouped by domain
+  schema.sql               # PostgreSQL tables
+  scripts/import_sports.py # imports sports data
 ```
 
 Every router depends on `get_current_user()` (verifies the JWT) except the public auth routes and `/sports`.
@@ -177,7 +173,7 @@ Rules for every AI call:
 - Every query filters by `user_id`; member endpoints check that both users are in the same active network.
 - Pydantic validation for every body; SQL only via ORM/bound parameters.
 - Rate limits: login 5/15 min per username+IP, password reset 3/h, AI endpoints as in §6.
-- HTTPS only (Let's Encrypt via certbot on the VM); security headers set in nginx (see `deploy/nginx.conf`).
+- The demo uses HTTP; do not use it for real personal information.
 - Privacy: `GET /me/export` and `DELETE /me` recommended (nDSG/GDPR) – not yet used by the frontend.
 
 ---
@@ -185,9 +181,10 @@ Rules for every AI call:
 ## 8. Connecting the backend to this frontend
 
 1. Implement the endpoints of API.md (start with auth → me/targets → workouts → nutrition → dashboard → community → coach).
-2. Run FastAPI on `127.0.0.1:8000` with routes under `/api/v1`.
-3. Uncomment the `location /api/` block in `deploy/nginx.conf` and reload nginx.
-4. Set `USE_MOCK_API: false` in `assets/js/config.js` (or for testing in the browser console:
+2. For the basic two-VM demo, run Flask on `0.0.0.0:8000` on the
+   backend VM, with routes under `/api/v1`; configure CORS for the frontend VM.
+3. Run Flask on the backend VM at `0.0.0.0:8000` and allow the frontend origin in CORS.
+4. Set the backend URL and `USE_MOCK_API: false` in `assets/js/config.js` (or for testing in the browser console:
    `localStorage.setItem('activate.useMock','false')`).
 5. Open the site, sign up, and walk through every page. Errors appear as toasts or under the related form field.
 6. Delete `assets/js/mock/` once everything works (it is only loaded in mock mode).

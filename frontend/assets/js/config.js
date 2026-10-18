@@ -12,10 +12,13 @@
 const stored = (() => {
   try { return localStorage.getItem('activate.useMock'); } catch { return null; }
 })();
+const storedApiBaseUrl = (() => {
+  try { return localStorage.getItem('activate.apiBaseUrl'); } catch { return null; }
+})();
 
 export const CONFIG = {
-  /** Base URL of the REST API. Same-origin path is recommended (nginx proxies /api/ to the backend). */
-  API_BASE_URL: '/api/v1',
+  /** Set this to the backend VM public IP or DNS name. */
+  API_BASE_URL: storedApiBaseUrl || 'http://BACKEND_VM_PUBLIC_IP:8000/api/v1',
 
   /** Switch between mock backend and real backend. */
   USE_MOCK_API: stored === null ? true : stored === 'true',

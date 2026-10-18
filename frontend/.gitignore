@@ -1,0 +1,24 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Local editor settings
+.vscode/
+.idea/
+
+# Frontend tooling output
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.parcel-cache/
+.vite/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log

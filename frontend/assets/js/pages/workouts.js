@@ -21,36 +21,41 @@ if (location.hash === '#log') $('#wf-sport').focus();
 /* ----------------------------------------------------------- Stats */
 async function loadStats() {
   const s = await workouts.stats(8);
-  const w = s.week;
-  const strength = s.goal_progress;
+  const weeks = Array.isArray(s.weeks) ? s.weeks : [];
+  const w = s.week || { minutes: 0, target_minutes: s.target_minutes || 150, sessions_done: 0, sessions_planned: 0 };
+  const strength = Array.isArray(s.goal_progress) ? s.goal_progress : [];
+  const bySport = Array.isArray(s.by_sport) ? s.by_sport : [];
+  const personalBests = Array.isArray(s.personal_bests) ? s.personal_bests : [];
   $('#kpis').innerHTML = `
     <div class="kpi"><span class="kpi-label">Minutes this week</span><span class="kpi-value">${fmt(w.minutes)} <small>/ ${fmt(w.target_minutes)}</small></span>${track(w.minutes, w.target_minutes)}</div>
     <div class="kpi"><span class="kpi-label">Sessions this week</span><span class="kpi-value">${w.sessions_done} <small>/ ${w.sessions_planned}</small></span>${track(w.sessions_done, w.sessions_planned)}</div>
     ${strength.slice(0, 2).map((g) => `<div class="kpi"><span class="kpi-label">${esc(g.label.split(' · ')[0])} goal</span><span class="kpi-value">${g.done} <small>/ ${g.target} sessions</small></span>${track(g.done, g.target)}</div>`).join('')}`;
 
-  const max = Math.max(s.target_minutes * 1.15, ...s.weeks.map((x) => x.minutes));
+  const target = Number(s.target_minutes || w.target_minutes || 150);
+  const max = Math.max(target * 1.15, ...weeks.map((x) => Number(x.minutes) || 0), 1);
   const H = 160;
-  $('#target-label').textContent = `Target ${fmt(s.target_minutes)} min`;
-  $('#weeks-chart').innerHTML = `<div class="bars" style="grid-template-columns:repeat(${s.weeks.length},minmax(0,1fr));height:${H + 50}px">
-    <div class="target-line" style="bottom:${Math.round((s.target_minutes / max) * H) + 24}px"></div>
-    ${s.weeks.map((x, i) => {
-      const last = i === s.weeks.length - 1;
-      return `<div class="bar-col"><span class="bar-val">${x.minutes}</span><div class="bar${last ? ' bar--hl' : ''}" style="height:${Math.max(4, Math.round((x.minutes / max) * H))}px" title="Week of ${formatDate(x.week_start)}: ${x.minutes} min"></div><span class="bar-lbl">${last ? 'Now' : formatDate(x.week_start, { day: 'numeric', month: 'short' })}</span></div>`;
+  $('#target-label').textContent = `Target ${fmt(target)} min`;
+  $('#weeks-chart').innerHTML = `<div class="bars" style="grid-template-columns:repeat(${weeks.length || 1},minmax(0,1fr));height:${H + 50}px">
+    <div class="target-line" style="bottom:${Math.round((target / max) * H) + 24}px"></div>
+    ${weeks.map((x, i) => {
+      const minutes = Number(x.minutes) || 0;
+      const last = i === weeks.length - 1;
+      return `<div class="bar-col"><span class="bar-val">${minutes}</span><div class="bar${last ? ' bar--hl' : ''}" style="height:${Math.max(4, Math.round((minutes / max) * H))}px" title="Week of ${formatDate(x.week_start)}: ${minutes} min"></div><span class="bar-lbl">${last ? 'Now' : formatDate(x.week_start, { day: 'numeric', month: 'short' })}</span></div>`;
     }).join('')}</div>`;
-  const prev = s.weeks.slice(-5, -1).reduce((a, x) => a + x.minutes, 0) / 4;
-  const prev2 = s.weeks.slice(0, 4).reduce((a, x) => a + x.minutes, 0) / 4;
+  const prev = weeks.slice(-5, -1).reduce((a, x) => a + (Number(x.minutes) || 0), 0) / 4;
+  const prev2 = weeks.slice(0, 4).reduce((a, x) => a + (Number(x.minutes) || 0), 0) / 4;
   $('#weeks-note').textContent = prev2 ? `Average of the last 4 full weeks: ${Math.round(prev)} min (${prev >= prev2 ? '+' : ''}${Math.round(((prev - prev2) / prev2) * 100)} % vs. the 4 weeks before).` : '';
 
-  const maxS = Math.max(1, ...s.by_sport.map((x) => x.minutes));
-  $('#by-sport').innerHTML = s.by_sport.length ? s.by_sport.map((x, i) => `
+  const maxS = Math.max(1, ...bySport.map((x) => Number(x.minutes) || 0));
+  $('#by-sport').innerHTML = bySport.length ? bySport.map((x, i) => `
     <div class="stack" style="gap:6px"><div class="row-between small"><b>${esc(x.sport)}</b><span class="muted">${x.minutes} min</span></div>
     <div class="track track--thick${i ? ' track--warm' : ''}"><span style="width:${Math.round((x.minutes / maxS) * 100)}%"></span></div></div>`).join('') : '<div class="empty">Nothing logged this week yet.</div>';
 
-  $('#pbs').innerHTML = s.personal_bests.length ? s.personal_bests.map((p) => `
+  $('#pbs').innerHTML = personalBests.length ? personalBests.map((p) => `
     <div class="row-between small" style="padding:8px 0;border-bottom:1px solid var(--line-2)"><span>${esc(p.label)}<br><span class="muted">${esc(p.detail || '')}</span></span><span class="num" style="font-size:15px">${esc(p.value)}</span></div>`).join('') : '<div class="empty">Log workouts to see your records.</div>';
 
   // Filter chips from the user's own sports + sports in this week's data
-  const names = [...new Set([...(targets.sports || []).map((x) => x.name), ...s.by_sport.map((x) => x.sport)])];
+  const names = [...new Set([...(targets.sports || []).map((x) => x.name), ...bySport.map((x) => x.sport)])];
   $('#filters').innerHTML = [['', 'All'], ...names.map((n) => [n, n])].map(([v, l]) => `<button type="button" class="chip btn--small" style="min-height:36px" data-f="${esc(v)}" aria-pressed="${v === filter}">${esc(l)}</button>`).join('');
 }
 $('#filters').addEventListener('click', (e) => {

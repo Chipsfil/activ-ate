@@ -1,21 +1,24 @@
-"""Application configuration.
+"""Settings used by the backend."""
 
-Edit these values on the server. Never commit real passwords or production
-secrets to source control.
-"""
+import os
+from pathlib import Path
 
-# Local development example:
-# DATABASE_URL = "postgresql://activate:PASSWORD@127.0.0.1:5432/activate"
-DATABASE_URL = "postgresql://activate:CHANGE_THIS_PASSWORD@10.0.0.20:5432/activate?sslmode=require"
-JWT_SECRET = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET"
-# Set this to the public frontend URL on the backend VM.
-FRONTEND_ORIGIN = [
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).with_name(".env"))
+
+# Required settings
+DATABASE_URL = os.environ["DATABASE_URL"]
+JWT_SECRET = os.environ["JWT_SECRET"]
+
+# Use the single frontend address that the browser uses to open the app.
+FRONTEND_ORIGIN = os.environ.get(
+    "FRONTEND_ORIGIN",
     "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://FRONTEND_VM_PUBLIC_IP:8080",
-]
-# For a basic HTTP demo keep these values. Use HTTPS before handling real data.
-COOKIE_SECURE = False
-COOKIE_SAMESITE = "Lax"
-HOST = "0.0.0.0"
-PORT = 8000
+).strip()
+
+# Optional settings
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+COOKIE_SAMESITE = os.environ.get("COOKIE_SAMESITE", "Lax")
+HOST = os.environ.get("HOST", "0.0.0.0")
+PORT = int(os.environ.get("PORT", "8000"))

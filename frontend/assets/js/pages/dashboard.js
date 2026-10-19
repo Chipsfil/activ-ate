@@ -10,7 +10,8 @@ $('#checkin-date').textContent = 'Today';
 
 /* ----------------------------------------------------------- Render */
 function renderKpis(d) {
-  const w = d.week; const t = d.today;
+  const w = d.week || { minutes: 0, target_minutes: 150, sessions_done: 0, sessions_planned: 0 };
+  const t = d.today || {};
   $('#kpis').innerHTML = `
     <div class="kpi"><span class="kpi-label">Exercise minutes</span><span class="kpi-value">${fmt(w.minutes)} <small>/ ${fmt(w.target_minutes)}</small></span>${track(w.minutes, w.target_minutes)}</div>
     <div class="kpi"><span class="kpi-label">Sessions this week</span><span class="kpi-value">${w.sessions_done} <small>/ ${w.sessions_planned}</small></span>${track(w.sessions_done, w.sessions_planned)}</div>
@@ -22,6 +23,7 @@ function renderKpis(d) {
 }
 
 function renderWeek(days) {
+  days = Array.isArray(days) ? days : [];
   const max = Math.max(60, ...days.map((x) => x.minutes || 0));
   const t = todayISO();
   $('#week-chart').innerHTML = `<div class="bars" style="grid-template-columns:repeat(7,minmax(0,1fr))">${days.map((x) => {

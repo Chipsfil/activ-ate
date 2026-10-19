@@ -1,14 +1,19 @@
 from flask import Blueprint
-from .common import *
+
+from .common import auth_required, err, placeholder
 
 bp = Blueprint("community", __name__)
 
 @bp.get("/api/v1/community/members/<mid>")
 @auth_required
-def member(mid): return err("Member not found.","not_found",404)
+def member(mid):
+    return err("Member not found.", "not_found", 404)
+
+
 @bp.post("/api/v1/community/members/<mid>/cheers")
 @auth_required
-def cheer(mid): return err("This member cannot be cheered yet.","goal_not_reached",409)
+def cheer(mid):
+    return err("This member cannot be cheered yet.", "goal_not_reached", 409)
 
 for path, name, value in [
     ("/community/network","network",{"id":None,"member_count":1,"criteria":[],"explanation":"Your network is assigned automatically.","shared_data":["Exercise minutes","Workout type and duration","Streaks","Sleep hours","Water intake"]}),

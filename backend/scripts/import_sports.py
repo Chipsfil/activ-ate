@@ -4,10 +4,10 @@ Run from the repository root after applying schema.sql:
     python backend/scripts/import_sports.py
 """
 import json
+import sys
 from pathlib import Path
 
 import psycopg
-import sys
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from config import DATABASE_URL

@@ -1,54 +1,129 @@
-# Activ-Ate backend (Flask + PostgreSQL)
+# Activ-Ate backend
 
-Il backend implementa l'API REST usata da `frontend/assets/js/api.js`.
-Le route sono separate per dominio:
+Backend REST di Activ-Ate, realizzato con Flask e PostgreSQL remoto
+(Supabase o PostgreSQL installato su un altro server).
+
+Il backend è organizzato per dominio:
 
 ```text
 backend/
-├── app.py                 # crea Flask e registra i blueprint
+├── app.py                  # avvio Flask e registrazione dei Blueprint
+├── config.py               # carica la configurazione da .env
 ├── api/
-│   ├── common.py          # DB, autenticazione e serializzatori condivisi
-│   ├── auth.py            # registrazione, login, refresh, logout
-│   ├── profile.py         # profilo, obiettivi e onboarding
-│   ├── activity.py        # sport, dashboard, check-in e workout
-│   ├── nutrition.py       # pasti e riepiloghi nutrizionali
-│   ├── recommendations.py # raccomandazioni giornaliere
-│   ├── community.py       # rete, leaderboard e feed
-│   └── coach.py           # conversazioni e messaggi coach
+│   ├── common.py           # connessione DB, JWT e helper condivisi
+│   ├── auth.py             # registrazione, login e sessioni
+│   ├── profile.py          # profilo, obiettivi e onboarding
+│   ├── activity.py         # sport, dashboard, check-in e workout
+│   ├── nutrition.py        # pasti e riepiloghi nutrizionali
+│   ├── recommendations.py  # raccomandazioni
+│   ├── community.py        # community e leaderboard
+│   ├── coach.py            # coach e conversazioni
+│   └── system.py           # health check
+├── schema.sql              # schema PostgreSQL
+└── scripts/import_sports.py
 ```
 
-Non esiste un file per ogni singola API: le API dello stesso dominio condividono
-validazione e logica.
+Le API dello stesso dominio condividono validazione e logica: non esiste un
+file separato per ogni singola route. Il prefisso comune è
+`/api/v1`. L'elenco aggiornato delle route è in
+[frontend/docs/API.md](../frontend/docs/API.md).
 
-La configurazione è in `config.py`, senza file `.env`. Prima dell'avvio modifica
-`DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN` e `COOKIE_SECURE`.
+## Configurazione
+
+La configurazione runtime è nel file locale `backend/.env`, escluso da Git.
+Partire da [.env.example](.env.example):
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Modificare almeno:
+
+```dotenv
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+JWT_SECRET=una-stringa-casuale-lunga
+FRONTEND_ORIGIN=http://localhost:8080
+COOKIE_SECURE=false
+COOKIE_SAMESITE=Lax
+HOST=0.0.0.0
+PORT=8000
+```
+
+`config.py` legge `.env` con `python-dotenv`; non contiene credenziali
+hardcoded. Non committare e non condividere `backend/.env`.
+
+Per generare un segreto JWT:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+## Supabase e PostgreSQL remoto
+
+In Supabase usare la connection string **Session Pooler** quando la direct
+connection IPv6 non è raggiungibile dalla VM. Copiare la stringa in
+`DATABASE_URL`, mantenendo `sslmode=require`.
+
+Per un PostgreSQL gestito autonomamente:
+
+1. creare database e utente applicativo;
+2. consentire nel firewall solo l'IP privato della VM Flask;
+3. configurare `listen_addresses` e `pg_hba.conf`;
+4. usare TLS e una password URL-encoded nella connection string.
+
+Esempio SQL eseguito sul server PostgreSQL:
+
+```sql
+CREATE USER activate WITH PASSWORD 'una-password-lunga';
+CREATE DATABASE activate OWNER activate;
+```
+
+Poi applicare lo schema dal backend:
+
+```bash
+cd backend
+psql "$(python3 -c 'from config import DATABASE_URL; print(DATABASE_URL)')" -f schema.sql
+python scripts/import_sports.py
+```
+
+Lo script di import legge [sports.json](../frontend/assets/data/sports.json) e
+inserisce o aggiorna gli sport nella tabella `sports`.
+
+Python non legge file dal server PostgreSQL: apre una connessione TCP tramite
+Psycopg, invia query SQL parametrizzate e riceve righe e colonne. Il database
+può quindi stare su un server diverso dalla VM Flask; deve essere raggiungibile
+in rete e autorizzare l'IP del backend.
 
 ## Avvio locale
 
-Richiede Python 3.11+ e PostgreSQL 14+.
-
-### Backend
+Richiede Python 3.11+.
 
 ```bash
 cd backend
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
-# modifica config.py con l'URL del tuo PostgreSQL
+cp .env.example .env
+# modificare .env con la connection string reale
 psql "$(python3 -c 'from config import DATABASE_URL; print(DATABASE_URL)')" -f schema.sql
 python app.py
 ```
 
-Per verificare il collegamento:
+Il server Flask ascolta su `0.0.0.0:8000` con `debug=False`.
+Per verificare applicazione e database:
 
 ```bash
 curl http://127.0.0.1:8000/api/v1/health
 ```
 
-Il comando legge `DATABASE_URL` direttamente da `config.py`, quindi non serve
-una variabile d'ambiente.
+Risposta attesa:
 
-### Frontend e collegamento locale
+```json
+{"database":"ok","status":"ok"}
+```
+
+## Avvio del frontend e collegamento
 
 In un secondo terminale:
 
@@ -57,14 +132,26 @@ cd frontend
 python3 -m http.server 8080
 ```
 
-Il frontend usa normalmente `/api/v1`. In locale apri la console del browser su
-`http://localhost:8080` ed esegui:
+Per collegare il frontend al backend reale:
 
 ```javascript
 localStorage.setItem("activate.useMock", "false");
 localStorage.setItem("activate.apiBaseUrl", "http://127.0.0.1:8000/api/v1");
 location.reload();
 ```
+
+Su due VM sostituire l'URL con l'indirizzo del backend:
+
+```javascript
+localStorage.setItem(
+  "activate.apiBaseUrl",
+  "http://BACKEND_VM_PUBLIC_IP:8000/api/v1"
+);
+```
+
+Impostare `FRONTEND_ORIGIN` sull'origine esatta del frontend, per esempio
+`http://FRONTEND_VM_PUBLIC_IP:8080`. Il backend usa CORS con credenziali per
+permettere il cookie HttpOnly di refresh.
 
 Per tornare al mock:
 
@@ -74,109 +161,48 @@ localStorage.removeItem("activate.apiBaseUrl");
 location.reload();
 ```
 
-Il backend deve avere `COOKIE_SECURE = False` quando si usa HTTP locale. Il
-browser invierà il cookie di refresh solo se frontend e backend usano origini
-consentite da `FRONTEND_ORIGIN`.
-
-## Due VM Google Cloud: versione didattica semplice
-
-Per una demo basica il browser comunica direttamente con Flask:
+## Architettura demo a due VM
 
 ```text
-Frontend VM: http://FRONTEND_IP:8080
-      │
-      └── HTTP/fetch + CORS
-              │
-Backend VM: http://BACKEND_IP:8000
-      │
-      └── PostgreSQL sulla rete privata
+Browser
+   │ HTTP/fetch + CORS
+Frontend VM: python3 -m http.server 8080
+   │
+Backend VM: python app.py, porta 8000
+   │
+Supabase/PostgreSQL remoto
 ```
 
-Nel frontend imposta in `assets/js/config.js`:
+Per questa demo non servono Nginx o Gunicorn. Aprire la porta TCP `8000` solo
+al traffico necessario e non esporre mai la porta PostgreSQL a Internet.
+L'uso di HTTP e `COOKIE_SECURE=false` è adatto solo a dati dimostrativi:
+per dati reali servono HTTPS, cookie Secure e un deployment WSGI/reverse
+proxy adeguato.
 
-```javascript
-API_BASE_URL: 'http://BACKEND_VM_PUBLIC_IP:8000/api/v1',
-USE_MOCK_API: false
-```
-
-Nel backend imposta in `config.py` l'origine reale della VM frontend:
-
-```python
-HOST = "0.0.0.0"
-PORT = 8000
-FRONTEND_ORIGIN = ["http://FRONTEND_VM_PUBLIC_IP:8080"]
-COOKIE_SECURE = False
-COOKIE_SAMESITE = "Lax"
-```
-
-Apri nel firewall Google Cloud `tcp:8000` solo per il traffico necessario alla
-demo e non aprire mai `tcp:5432` a Internet. Il backend viene avviato con il server Flask integrato:
+## Verifica registrazione e login
 
 ```bash
-python app.py
+curl -i -c /tmp/activate-cookies.txt \
+  -X POST http://127.0.0.1:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "Test",
+    "last_name": "User",
+    "username": "test.user.unique",
+    "email": "test.user.unique@example.invalid",
+    "password": "password123",
+    "gender": "unspecified",
+    "date_of_birth": "1995-01-10",
+    "weight_kg": 70,
+    "height_cm": 175
+  }'
 ```
 
-Questa configurazione è adatta a una demo didattica. Usa HTTP e quindi non
-deve trattare password o dati reali. `debug=False` è impostato nel codice.
+La risposta corretta è `201` e contiene `access_token` e `user`; il cookie
+`refresh_token` viene impostato nella risposta. Per verificare il database,
+controllare la riga corrispondente in `users` senza stampare password o
+connection string nei log.
 
-## PostgreSQL su un altro server
-
-Sul server PostgreSQL:
-
-```sql
-CREATE USER activate WITH PASSWORD 'una-password-lunga';
-CREATE DATABASE activate OWNER activate;
-```
-
-Consentire la rete del server Flask in `postgresql.conf`:
-
-```conf
-listen_addresses = '*'
-```
-
-In `pg_hba.conf` autorizzare solo l'IP privato del server Flask:
-
-```conf
-hostssl activate activate 10.0.2.15/32 scram-sha-256
-```
-
-Riavviare PostgreSQL e aprire la porta 5432 solo sulla rete privata.
-
-Sul server Flask modifica `backend/config.py`:
-
-```python
-DATABASE_URL = "postgresql://activate:PASSWORD@10.0.0.20:5432/activate?sslmode=require"
-JWT_SECRET = "una-chiave-casuale-lunga"
-FRONTEND_ORIGIN = "https://your-domain.example"
-COOKIE_SECURE = True
-```
-
-Genera il segreto con:
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-Poi inizializza lo schema:
-
-```bash
-psql "postgresql://activate:PASSWORD@10.0.0.20:5432/activate?sslmode=require" -f schema.sql
-python scripts/import_sports.py
-```
-
-L'app apre una connessione PostgreSQL per richiesta usando Psycopg. PostgreSQL
-non viene montato come cartella: Python legge righe e colonne via protocollo
-TCP e usa query parametrizzate con placeholder `%s`.
-
-Per importare gli sport, `scripts/import_sports.py` legge
-`frontend/assets/data/sports.json` e aggiorna la tabella `sports`.
-
-## Collegamento frontend
-
-Impostare `CONFIG.USE_MOCK_API = false` in
-`frontend/assets/js/config.js`. Nginx inoltra `/api/` a
-`http://127.0.0.1:8000`; frontend e backend restano sullo stesso dominio e il
-cookie HttpOnly di refresh funziona senza CORS aggiuntivo.
-
-Le risposte AI e il reset password hanno fallback locali. Prima del go-live
-aggiungere un provider email e, se necessario, un provider LLM.
+Le funzioni AI, l'invio email per il reset password e alcune funzioni avanzate
+di community/coach sono predisposte come fallback o placeholder. Non
+considerare l'attuale configurazione una installazione production-ready.

@@ -1,5 +1,18 @@
-from flask import Blueprint
-from .common import *
+from datetime import date, timedelta
+
+from flask import Blueprint, g, request
+
+from .common import (
+    auth_required,
+    body,
+    conn,
+    current_weight,
+    err,
+    iso,
+    parse_date,
+    sport,
+    totals,
+)
 
 bp = Blueprint("activity", __name__)
 
@@ -25,10 +38,43 @@ def dashboard():
     with conn() as c:
         log = c.execute("SELECT sleep_hours,water_l FROM daily_logs WHERE user_id=%s AND log_date=%s", (g.user_id, d)).fetchone()
         workouts = c.execute("SELECT COALESCE(sum(duration_min),0) minutes, count(*) sessions FROM workouts WHERE user_id=%s AND performed_on=%s AND status='done'", (g.user_id, d)).fetchone()
-        return {"date": iso(d), "checkin": {"sleep_hours": float(log["sleep_hours"]) if log and log["sleep_hours"] is not None else None,
-                "water_l": float(log["water_l"]) if log and log["water_l"] is not None else None},
-                "today": {"minutes": int(workouts["minutes"]), "sessions": int(workouts["sessions"])},
-                "totals": totals(c, g.user_id, d)}
+        week_start = d - timedelta(days=d.weekday())
+        week = _week_summary(c, g.user_id, week_start)
+        days = []
+        for offset in range(7):
+            day = week_start + timedelta(days=offset)
+            row = c.execute(
+                "SELECT COALESCE(sum(duration_min),0) minutes FROM workouts "
+                "WHERE user_id=%s AND performed_on=%s AND status='done'",
+                (g.user_id, day),
+            ).fetchone()
+            days.append({"date": iso(day), "minutes": None if day > date.today() else int(row["minutes"])})
+        day_totals = totals(c, g.user_id, d)
+        return {
+            "date": iso(d),
+            "checkin": {
+                "sleep_hours": float(log["sleep_hours"]) if log and log["sleep_hours"] is not None else None,
+                "water_l": float(log["water_l"]) if log and log["water_l"] is not None else None,
+            },
+            "today": {
+                "minutes": int(workouts["minutes"]),
+                "sessions": int(workouts["sessions"]),
+                "kcal": day_totals["kcal"],
+                "kcal_target": 2350,
+                "protein_g": day_totals["protein_g"],
+                "protein_target_g": 140,
+                "sleep_hours": float(log["sleep_hours"]) if log and log["sleep_hours"] is not None else None,
+                "water_l": float(log["water_l"]) if log and log["water_l"] is not None else None,
+            },
+            "week": week,
+            "days": days,
+            "streak": {"current": 0, "best": 0},
+            "goal_progress": [],
+            "recent_workouts": [],
+            "network_top": [],
+            "network_note": "",
+            "feed": [],
+        }
 
 @bp.get("/api/v1/workouts")
 @auth_required
@@ -61,5 +107,80 @@ def delete_workout(wid):
     return "",204
 @bp.get("/api/v1/workouts/stats")
 @auth_required
-def workout_stats(): return {"weeks":[]}
+def workout_stats():
+    count = min(int(request.args.get("weeks", 8)), 26)
+    current_week = date.today() - timedelta(days=date.today().weekday())
+    with conn() as c:
+        weeks = []
+        for offset in range(count - 1, -1, -1):
+            start = current_week - timedelta(days=offset * 7)
+            row = c.execute(
+                "SELECT COALESCE(sum(duration_min),0) minutes FROM workouts "
+                "WHERE user_id=%s AND performed_on BETWEEN %s AND %s AND status='done'",
+                (g.user_id, start, start + timedelta(days=6)),
+            ).fetchone()
+            weeks.append({"week_start": iso(start), "minutes": int(row["minutes"])})
 
+        by_sport = c.execute(
+            "SELECT sport_name sport, COALESCE(sum(duration_min),0) minutes "
+            "FROM workouts WHERE user_id=%s AND performed_on BETWEEN %s AND %s "
+            "AND status='done' GROUP BY sport_name ORDER BY minutes DESC",
+            (g.user_id, current_week, current_week + timedelta(days=6)),
+        ).fetchall()
+        target = c.execute(
+            "SELECT COALESCE(sum(minutes_per_session * sessions_per_week),0) target "
+            "FROM activity_goals WHERE user_id=%s",
+            (g.user_id,),
+        ).fetchone()["target"] or 150
+        week = _week_summary(c, g.user_id, current_week, target)
+        longest = c.execute(
+            "SELECT sport_name sport, duration_min, performed_on FROM workouts "
+            "WHERE user_id=%s AND status='done' ORDER BY duration_min DESC LIMIT 1",
+            (g.user_id,),
+        ).fetchone()
+        personal_bests = []
+        if longest:
+            personal_bests.append({
+                "label": "Longest session",
+                "value": f"{longest['duration_min']} min",
+                "detail": f"{longest['sport']}, {iso(longest['performed_on'])}",
+            })
+        personal_bests.append({
+            "label": "Best week",
+            "value": f"{max((item['minutes'] for item in weeks), default=0)} min",
+            "detail": f"last {count} weeks",
+        })
+        return {
+            "weeks": weeks,
+            "target_minutes": int(target),
+            "week": week,
+            "by_sport": [dict(row) for row in by_sport],
+            "goal_progress": [],
+            "personal_bests": personal_bests,
+        }
+
+
+def _week_summary(c, uid, start, target=None):
+    row = c.execute(
+        "SELECT COALESCE(sum(duration_min),0) minutes, count(*) sessions_done "
+        "FROM workouts WHERE user_id=%s AND performed_on BETWEEN %s AND %s AND status='done'",
+        (uid, start, start + timedelta(days=6)),
+    ).fetchone()
+    if target is None:
+        target_row = c.execute(
+            "SELECT COALESCE(sum(minutes_per_session * sessions_per_week),0) target "
+            "FROM activity_goals WHERE user_id=%s",
+            (uid,),
+        ).fetchone()
+        target = target_row["target"] or 150
+    planned = c.execute(
+        "SELECT COALESCE(sum(sessions_per_week),0) sessions "
+        "FROM activity_goals WHERE user_id=%s",
+        (uid,),
+    ).fetchone()["sessions"] or 0
+    return {
+        "minutes": int(row["minutes"]),
+        "target_minutes": int(target),
+        "sessions_done": int(row["sessions_done"]),
+        "sessions_planned": int(planned),
+    }

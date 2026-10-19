@@ -3,7 +3,7 @@
  *
  * USE_MOCK_API = true  → every API call is answered by the in-browser mock backend
  *                        (assets/js/mock/), data lives in localStorage. No server needed.
- * USE_MOCK_API = false → calls go to API_BASE_URL over HTTPS (see docs/API.md).
+ * USE_MOCK_API = false → calls go to API_BASE_URL (see docs/API.md).
  *
  * You can also override per browser for testing:
  *   localStorage.setItem('activate.useMock', 'false')   // use real backend
@@ -17,11 +17,11 @@ const storedApiBaseUrl = (() => {
 })();
 
 export const CONFIG = {
-  /** Set this to the backend VM public IP or DNS name. */
-  API_BASE_URL: storedApiBaseUrl || 'http://BACKEND_VM_PUBLIC_IP:8000/api/v1',
+  /** Set this to the backend VM public IP or DNS name for a remote deployment. */
+  API_BASE_URL: storedApiBaseUrl || 'http://127.0.0.1:8000/api/v1',
 
   /** Switch between mock backend and real backend. */
-  USE_MOCK_API: stored === null ? true : stored === 'true',
+  USE_MOCK_API: stored === null ? false : stored === 'true',
 
   /** Simulated network latency of the mock backend in ms [min, max]. */
   MOCK_LATENCY_MS: [150, 450],

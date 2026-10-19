@@ -4,8 +4,9 @@ Health web app: log workouts and meals, get AI recommendations, and compare your
 assigned network of similar people. This repository contains the **complete frontend** (plain HTML, CSS and
 JavaScript – no build step) plus the **documentation the backend team needs**.
 
-The backend (Python Flask + PostgreSQL + Claude/OpenAI API) is provided in `../backend`. Until then a mock backend runs inside the
-browser, so every page already works end to end (data is stored in `localStorage`).
+The backend (Python Flask + PostgreSQL) is provided in `../backend`. The
+frontend can run either with the in-browser mock or with the real API. The
+mock stores data in `localStorage` and does not require PostgreSQL.
 
 | Document | For whom | Content |
 | --- | --- | --- |
@@ -27,6 +28,19 @@ python3 -m http.server 8080
 **Demo login (mock mode):** username `demo`, password `demo1234` – 8 weeks of example data.
 Or create a new account through the onboarding. To reset all demo data run in the browser console:
 `localStorage.clear()`.
+
+To use the real backend, start it following
+[backend/README.md](../backend/README.md), then run in the browser console:
+
+```javascript
+localStorage.setItem("activate.useMock", "false");
+localStorage.setItem("activate.apiBaseUrl", "http://127.0.0.1:8000/api/v1");
+location.reload();
+```
+
+The backend `FRONTEND_ORIGIN` must contain the exact origin used to open this
+static server. The real API uses credentialed CORS and a HttpOnly refresh
+cookie.
 
 ---
 
@@ -65,7 +79,7 @@ assets/js/api.js                           the ONLY place that talks to the back
 assets/js/ui.js                            sidebar, auth guard, toasts, formatting, escaping
 assets/js/components/                      sport autocomplete, workout form
 assets/js/pages/*.js                       one script per page
-assets/js/mock/                            in-browser mock backend (delete when the real API is live)
+assets/js/mock/                            in-browser mock backend (offline development)
 assets/data/sports.json                    seed list of sports with MET values
 docs/                                      API contract + backend specification
 ```
@@ -83,11 +97,18 @@ Open TCP 8080 in the Google Cloud firewall and run:
 python3 -m http.server 8080 --bind 0.0.0.0
 ```
 
-Set `API_BASE_URL` to `http://<backend-vm-ip>:8000/api/v1` and
-`USE_MOCK_API` to `false` in `assets/js/config.js`. This HTTP setup is only
-for demo data.
-- For the basic two-VM demo, expose Flask on the backend VM port
-  `8000`, set `API_BASE_URL` to `http://<backend-ip>:8000/api/v1`, and set
-  `USE_MOCK_API: false`. Configure CORS as described in `backend/README.md`.
-  This HTTP setup is for demo data only; use HTTPS before handling real user
-  information.
+For the basic two-VM demo, expose Flask on the backend VM port `8000` and set
+the URL at runtime:
+
+```javascript
+localStorage.setItem(
+  "activate.apiBaseUrl",
+  "http://BACKEND_VM_PUBLIC_IP:8000/api/v1"
+);
+localStorage.setItem("activate.useMock", "false");
+location.reload();
+```
+
+Configure CORS as described in [backend/README.md](../backend/README.md).
+This HTTP setup is for demo data only; use HTTPS before handling real user
+information.

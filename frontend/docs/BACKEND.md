@@ -1,8 +1,9 @@
 # Activ-Ate – Backend specification
 
-What the Python backend has to do behind each endpoint in [API.md](API.md).
-The frontend is finished and talks to the API through `assets/js/api.js`; the in-browser mock
-(`assets/js/mock/`) shows the expected behaviour and can be read as executable pseudo-code.
+This document describes the Python backend currently present in `../../backend`
+and the behaviour expected by the frontend. The frontend talks to the API
+through `assets/js/api.js`; the in-browser mock (`assets/js/mock/`) remains
+available for local UI development.
 
 ---
 
@@ -10,27 +11,27 @@ The frontend is finished and talks to the API through `assets/js/api.js`; the in
 
 ```
 Browser (static HTML/CSS/JS)  ──HTTP──▶  Flask on the backend VM
-                                        └── PostgreSQL (private network)
-                                                                 ├── PostgreSQL (Cloud SQL or local on VM)
-                                                                 ├── LLM API (Claude or OpenAI) – only from backend
-                                                                 └── Email service (password reset)
+                                        └── PostgreSQL (Supabase or remote server)
 ```
 
-The supplied implementation uses **Python 3.11+, Flask, psycopg 3, PyJWT and Werkzeug**.
-For the basic demo, run Flask directly on the backend VM.
+The implementation uses **Python 3.11+, Flask, psycopg 3, PyJWT, Werkzeug and
+python-dotenv**. For the basic demo, run Flask directly on the backend VM.
+Configuration is loaded from `backend/.env`; use `backend/.env.example` as a
+template and never commit the real file.
 
 Project layout:
 
 ```
 backend/
   app.py                   # Flask app and Blueprint registry
-  config.py                # database, CORS and server settings
+  config.py                # loads database, CORS and server settings from .env
   api/                     # routes grouped by domain
   schema.sql               # PostgreSQL tables
   scripts/import_sports.py # imports sports data
 ```
 
-Every router depends on `get_current_user()` (verifies the JWT) except the public auth routes and `/sports`.
+Every protected router depends on `get_current_user()` (verifies the JWT)
+except public auth routes, `/sports` and `/health`.
 
 ---
 
@@ -143,10 +144,13 @@ days of the week so far, streak milestones (7/14/30 days), new personal best.
 
 ---
 
-## 6. AI features (Claude or OpenAI)
+## 6. AI features and current limitations
 
-All LLM calls live in `services/ai.py`. API key only in backend environment variables. Suggested model: a small, cheap
-model (e.g. Claude Haiku 4.5) with structured JSON output; temperature 0 for estimates, ~0.5 for advice.
+The current Flask implementation returns deterministic fallback responses for
+recommendations and meal estimates; it does not yet call Claude or OpenAI.
+When an LLM provider is added, its API key must remain in backend environment
+variables and never be sent to the browser. The table below describes the
+intended extension point, not an already configured provider.
 
 | Feature | Endpoint | Input sent to the LLM | Output (validated with Pydantic) | Cache / limits |
 | --- | --- | --- | --- | --- |
@@ -169,7 +173,9 @@ Rules for every AI call:
 ## 7. Security checklist
 
 - Argon2/bcrypt password hashes; JWT signed with a secret from env (HS256) or key pair; access token 15 min.
-- Refresh token in `HttpOnly; Secure; SameSite=Strict` cookie, hashed in DB, rotated on every refresh, revoked on logout/reset.
+- Refresh token in an `HttpOnly` cookie, hashed in DB, rotated in the implemented
+  refresh flow and revoked on logout/reset. `Secure` is enabled when
+  `COOKIE_SECURE=true`; the local HTTP demo uses `SameSite=Lax`.
 - Every query filters by `user_id`; member endpoints check that both users are in the same active network.
 - Pydantic validation for every body; SQL only via ORM/bound parameters.
 - Rate limits: login 5/15 min per username+IP, password reset 3/h, AI endpoints as in §6.
@@ -180,11 +186,14 @@ Rules for every AI call:
 
 ## 8. Connecting the backend to this frontend
 
-1. Implement the endpoints of API.md (start with auth → me/targets → workouts → nutrition → dashboard → community → coach).
-2. For the basic two-VM demo, run Flask on `0.0.0.0:8000` on the
-   backend VM, with routes under `/api/v1`; configure CORS for the frontend VM.
-3. Run Flask on the backend VM at `0.0.0.0:8000` and allow the frontend origin in CORS.
+1. Copy `backend/.env.example` to `backend/.env` and set the remote
+   PostgreSQL/Supabase connection string.
+2. Apply `backend/schema.sql` and import sports with
+   `python backend/scripts/import_sports.py`.
+3. Run Flask on `0.0.0.0:8000` on the backend VM and allow the frontend origin
+   in CORS.
 4. Set the backend URL and `USE_MOCK_API: false` in `assets/js/config.js` (or for testing in the browser console:
    `localStorage.setItem('activate.useMock','false')`).
 5. Open the site, sign up, and walk through every page. Errors appear as toasts or under the related form field.
-6. Delete `assets/js/mock/` once everything works (it is only loaded in mock mode).
+6. Keep `assets/js/mock/` for offline development; it is loaded only in mock
+   mode and is not required by the real backend.

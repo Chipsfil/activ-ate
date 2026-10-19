@@ -1,11 +1,15 @@
 # Activ-Ate – REST API contract (v1)
 
-This is the contract between the frontend in this repository and the Python backend that still has to be built.
-The frontend already calls every endpoint below (see `assets/js/api.js`). Until the backend exists, the same
-endpoints are answered by an in-browser mock (`assets/js/mock/mock-server.js`). That mock is a working reference
-implementation: when in doubt about a field, check what the mock returns.
+This is the v1 API contract between the frontend in this repository and the
+Python Flask backend in `../../backend`. The frontend calls the API through
+`assets/js/api.js`; the in-browser mock
+(`assets/js/mock/mock-server.js`) is available for offline development.
 
-**Implement the endpoints, then set `USE_MOCK_API: false` in `assets/js/config.js`. No other frontend change is needed.**
+The backend is started with `python backend/app.py`. Set `USE_MOCK_API` to
+`false` and point `API_BASE_URL` at
+`http://<backend-host>:8000/api/v1` to use PostgreSQL-backed data. The current
+implementation and known fallback endpoints are documented in
+`backend/README.md`.
 
 ---
 
@@ -13,7 +17,7 @@ implementation: when in doubt about a field, check what the mock returns.
 
 | Topic | Rule |
 | --- | --- |
-| Base URL | `https://api.example.com/api/v1` when frontend and backend are on separate VMs. The frontend sends credentialed CORS requests and the backend allows only the frontend origin. |
+| Base URL | `http://<backend-host>:8000/api/v1` for the local/two-VM demo, or HTTPS in production. The frontend sends credentialed CORS requests and the backend allows only the configured frontend origin. |
 | Format | JSON request and response bodies, `Content-Type: application/json`. |
 | Dates | ISO date strings `YYYY-MM-DD` (user's local date). Timestamps ISO 8601 UTC (`2026-10-17T09:00:00Z`). |
 | Units | Metric only: kg, cm, minutes, km, kcal, grams, liters, hours. |
@@ -47,8 +51,9 @@ implementation: when in doubt about a field, check what the mock returns.
 ## 2. Authentication
 
 - **Access token**: JWT, valid ~15 min, returned in the JSON body. The frontend keeps it **in memory only**.
-- **Refresh token**: random string, valid 30 days (or session-only if `remember_me=false`), set by the backend as cookie
-  `Set-Cookie: refresh_token=…; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`. Store only its hash.
+- **Refresh token**: random string, valid 30 days, set by the backend as cookie
+  `Set-Cookie: refresh_token=…; HttpOnly; SameSite=Lax; Path=/api/v1/auth` in the HTTP demo.
+  Use `Secure` with HTTPS in production. Store only its hash.
 - Every page calls `POST /auth/refresh` when it loads (multi-page app → memory is lost on navigation). Rotate the refresh token on each call.
 
 ### `GET /auth/username-available?username=lena.meier` — public

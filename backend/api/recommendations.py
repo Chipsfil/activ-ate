@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
+
 from flask import Blueprint
-from .common import *
+
+from .common import placeholder
 
 bp = Blueprint("recommendations", __name__)
 

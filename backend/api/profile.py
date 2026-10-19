@@ -1,5 +1,14 @@
-from flask import Blueprint
-from .common import *
+from flask import Blueprint, g
+
+from .common import (
+    auth_required,
+    body,
+    conn,
+    current_weight,
+    err,
+    iso,
+    user_json,
+)
 
 bp = Blueprint("profile", __name__)
 
@@ -14,8 +23,12 @@ def save_goals():
     b=body(); goals=b.get("goals",[]); sports=b.get("sports",[])
     if not goals or not sports: return err("Choose at least one goal and one sport.")
     with conn() as c:
-        c.execute("DELETE FROM user_goals WHERE user_id=%s",(g.user_id,)); c.executemany("INSERT INTO user_goals(user_id,goal,position) VALUES(%s,%s,%s)",[(g.user_id,x,i) for i,x in enumerate(goals)])
-        c.execute("DELETE FROM user_sports WHERE user_id=%s",(g.user_id,)); c.executemany("INSERT INTO user_sports(user_id,sport_id,name) VALUES(%s,%s,%s)",[(g.user_id,x.get("sport_id"),x["name"]) for x in sports])
+        c.execute("DELETE FROM user_goals WHERE user_id=%s",(g.user_id,))
+        with c.cursor() as cur:
+            cur.executemany("INSERT INTO user_goals(user_id,goal,position) VALUES(%s,%s,%s)",[(g.user_id,x,i) for i,x in enumerate(goals)])
+        c.execute("DELETE FROM user_sports WHERE user_id=%s",(g.user_id,))
+        with c.cursor() as cur:
+            cur.executemany("INSERT INTO user_sports(user_id,sport_id,name) VALUES(%s,%s,%s)",[(g.user_id,x.get("sport_id"),x["name"]) for x in sports])
         c.execute("UPDATE users SET onboarding_step='3' WHERE id=%s",(g.user_id,)); c.commit()
     return {"goals":goals,"sports":sports}
 
@@ -37,9 +50,12 @@ def put_targets():
     with conn() as c:
         if "activity_goals" in b:
             c.execute("DELETE FROM activity_goals WHERE user_id=%s",(g.user_id,))
-            c.executemany("INSERT INTO activity_goals(user_id,sport_id,sport_name,minutes_per_session,sessions_per_week) VALUES(%s,%s,%s,%s,%s)",[(g.user_id,x.get("sport_id"),x["sport"],x["minutes_per_session"],x["sessions_per_week"]) for x in b["activity_goals"]])
+            with c.cursor() as cur:
+                cur.executemany("INSERT INTO activity_goals(user_id,sport_id,sport_name,minutes_per_session,sessions_per_week) VALUES(%s,%s,%s,%s,%s)",[(g.user_id,x.get("sport_id"),x["sport"],x["minutes_per_session"],x["sessions_per_week"]) for x in b["activity_goals"]])
         if "nutrition_goals" in b:
-            c.execute("DELETE FROM nutrition_goals WHERE user_id=%s",(g.user_id,)); c.executemany("INSERT INTO nutrition_goals(user_id,nutrient,amount) VALUES(%s,%s,%s)",[(g.user_id,x["nutrient"],x["amount"]) for x in b["nutrition_goals"]])
+            c.execute("DELETE FROM nutrition_goals WHERE user_id=%s",(g.user_id,))
+            with c.cursor() as cur:
+                cur.executemany("INSERT INTO nutrition_goals(user_id,nutrient,amount) VALUES(%s,%s,%s)",[(g.user_id,x["nutrient"],x["amount"]) for x in b["nutrition_goals"]])
         if "sleep_goal_h" in b:c.execute("UPDATE users SET sleep_goal_h=%s WHERE id=%s",(b["sleep_goal_h"],g.user_id))
         if "current_weight_kg" in b:c.execute("INSERT INTO body_weights(user_id,weight_kg,measured_on) VALUES(%s,%s,current_date)",(g.user_id,b["current_weight_kg"]))
         if "weight_goal" in b:

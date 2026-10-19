@@ -50,6 +50,12 @@ def dashboard():
             ).fetchone()
             days.append({"date": iso(day), "minutes": None if day > date.today() else int(row["minutes"])})
         day_totals = totals(c, g.user_id, d)
+        goal_progress = _goal_progress(c, g.user_id, week_start, min(d, date.today()))
+        recent_workouts = c.execute(
+            "SELECT * FROM workouts WHERE user_id=%s AND status='done' "
+            "ORDER BY performed_on DESC, created_at DESC LIMIT 4",
+            (g.user_id,),
+        ).fetchall()
         return {
             "date": iso(d),
             "checkin": {
@@ -69,8 +75,8 @@ def dashboard():
             "week": week,
             "days": days,
             "streak": {"current": 0, "best": 0},
-            "goal_progress": [],
-            "recent_workouts": [],
+            "goal_progress": goal_progress,
+            "recent_workouts": [workout_json(r) for r in recent_workouts],
             "network_top": [],
             "network_note": "",
             "feed": [],
@@ -184,3 +190,68 @@ def _week_summary(c, uid, start, target=None):
         "sessions_done": int(row["sessions_done"]),
         "sessions_planned": int(planned),
     }
+
+
+def _goal_progress(c, uid, start, through):
+    activity_rows = c.execute(
+        "SELECT sport_id, sport_name, minutes_per_session, sessions_per_week "
+        "FROM activity_goals WHERE user_id=%s",
+        (uid,),
+    ).fetchall()
+    out = []
+    for goal in activity_rows:
+        done = c.execute(
+            "SELECT count(*) sessions FROM workouts "
+            "WHERE user_id=%s AND status='done' AND performed_on BETWEEN %s AND %s "
+            "AND (sport_id=%s OR lower(sport_name)=lower(%s))",
+            (uid, start, start + timedelta(days=6), goal["sport_id"], goal["sport_name"]),
+        ).fetchone()["sessions"]
+        out.append({
+            "kind": "activity",
+            "label": f"{goal['sport_name']} · {goal['minutes_per_session']} min · {goal['sessions_per_week']}×/week",
+            "done": int(done),
+            "target": int(goal["sessions_per_week"]),
+            "unit": "sessions",
+        })
+
+    elapsed = max(0, (through - start).days + 1)
+    targets = {
+        row["nutrient"]: float(row["amount"])
+        for row in c.execute(
+            "SELECT nutrient, amount FROM nutrition_goals WHERE user_id=%s "
+            "AND nutrient IN ('protein', 'water')",
+            (uid,),
+        ).fetchall()
+    }
+    protein_target = targets.get("protein", 140)
+    water_target = targets.get("water", 2)
+    protein_days = 0
+    water_days = 0
+    for offset in range(elapsed):
+        day = start + timedelta(days=offset)
+        day_totals = totals(c, uid, day)
+        if float(day_totals["protein_g"]) >= protein_target:
+            protein_days += 1
+        log = c.execute(
+            "SELECT water_l FROM daily_logs WHERE user_id=%s AND log_date=%s",
+            (uid, day),
+        ).fetchone()
+        if log and log["water_l"] is not None and float(log["water_l"]) >= water_target:
+            water_days += 1
+    out.extend((
+        {
+            "kind": "nutrition",
+            "label": f"Protein · {protein_target:g} g · daily",
+            "done": protein_days,
+            "target": elapsed,
+            "unit": "days",
+        },
+        {
+            "kind": "nutrition",
+            "label": f"Water · {water_target:g} L · daily",
+            "done": water_days,
+            "target": elapsed,
+            "unit": "days",
+        },
+    ))
+    return out

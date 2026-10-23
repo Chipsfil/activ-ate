@@ -1,3 +1,5 @@
+"""Nutrition endpoints currently return the same authenticated placeholder."""
+
 from flask import Blueprint
 
 from .common import auth_required
@@ -5,22 +7,13 @@ from .common import auth_required
 bp = Blueprint("nutrition", __name__)
 
 
-def not_implemented():
-    @auth_required
-    def view():
-        return {"message": "Nutrition is not implemented in the backend."}, 501
-    return view
-
-
-for path, name, methods in [
-    ("/nutrition/summary", "nutrition_summary", ["GET"]),
-    ("/meals", "meals", ["GET", "POST"]),
-    ("/meals/estimate", "estimate", ["POST"]),
-]:
-    bp.add_url_rule("/api/v1" + path, name, not_implemented(), methods=methods)
-
-
-@bp.delete("/api/v1/meals/<mid>")
+# These routes share one response because nutrition is not implemented yet.
+# The optional meal_id is supplied only by the DELETE route.
+@bp.get("/api/v1/nutrition/summary", endpoint="nutrition_summary")
+@bp.route("/api/v1/meals", methods=["GET", "POST"], endpoint="meals")
+@bp.post("/api/v1/meals/estimate", endpoint="estimate")
+@bp.delete("/api/v1/meals/<meal_id>", endpoint="delete_meal")
 @auth_required
-def delete_meal(mid):
+def not_implemented(meal_id=None):
+    # Authentication still runs before returning HTTP 501 (not implemented).
     return {"message": "Nutrition is not implemented in the backend."}, 501

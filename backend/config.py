@@ -5,6 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+# Load backend/.env; already defined environment variables take precedence.
 load_dotenv(Path(__file__).with_name(".env"))
 
 # Required settings
@@ -18,6 +19,7 @@ FRONTEND_ORIGIN = os.environ.get(
 ).strip()
 
 # Optional settings
+# Environment values are strings, so convert the cookie flag and port number.
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 COOKIE_SAMESITE = os.environ.get("COOKIE_SAMESITE", "Lax")
 HOST = os.environ.get("HOST", "0.0.0.0")

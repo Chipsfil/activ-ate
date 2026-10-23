@@ -206,3 +206,47 @@ connection string nei log.
 Le funzioni AI, l'invio email per il reset password e alcune funzioni avanzate
 di community/coach sono predisposte come fallback o placeholder. Non
 considerare l'attuale configurazione una installazione production-ready.
+
+## Leggere e modificare il codice
+
+Ogni modulo in `api/` contiene le route di un dominio. I decorator `@bp.get`,
+`@bp.post`, `@bp.put`, `@bp.patch` e `@bp.delete` indicano metodo e URL;
+la funzione subito sotto gestisce la richiesta e restituisce la risposta.
+`@auth_required` controlla il token e salva l'ID dell'utente in `g.user_id`.
+
+Le query usano parametri `%s`: i valori della richiesta vengono passati
+separatamente dalla stringa SQL. `with conn() as connection` apre una
+connessione e la chiude alla fine del blocco; Psycopg esegue il commit in caso
+di successo e il rollback in caso di errore. Alcune route mantengono commit
+espliciti prima di leggere la risposta o creare una nuova sessione.
+
+`common.py` contiene solo helper condivisi. `replace_preferences` in
+`profile.py` salva le preferenze per entrambe le route del profilo.
+`week_start` e `weekly_target` mantengono gli stessi calcoli per dashboard,
+statistiche, community e coach. I commenti spiegano le regole meno immediate,
+come il mantenimento di una serie di allenamenti fino al giorno successivo.
+
+## Test di regressione
+
+Dalla root del repository, con l'ambiente virtuale del backend attivo:
+
+```bash
+python -m unittest discover -s backend/tests -v
+```
+
+I test standard usano un database simulato e non leggono le credenziali di
+`.env`. Verificano autenticazione, cookie, validazione, serializzazione,
+profilo, workout, community e placeholder. Il test PostgreSQL viene saltato
+se non è configurato un database di test.
+
+Per verificare anche un flusso completo con PostgreSQL, indicare un database
+locale dedicato ai test:
+
+```bash
+ACTIVATE_TEST_DATABASE_URL='postgresql://USER:PASSWORD@localhost/activate_test' \
+  python -m unittest discover -s backend/tests -v
+```
+
+Il test crea uno schema con nome casuale e lo elimina alla fine. Richiede
+permessi per creare lo schema e le estensioni `pgcrypto` e `citext` previste
+da `schema.sql`. Usare un database separato da quello dell'applicazione.

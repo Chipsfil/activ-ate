@@ -1,5 +1,8 @@
 # Activ-Ate – Frontend
 
+For deployment on the two existing Linux VMs with Google Cloud SQL, see
+[`../GCP_DEPLOYMENT.md`](../GCP_DEPLOYMENT.md).
+
 Health web app: log workouts and meals, get AI recommendations, and compare yourself with an automatically
 assigned network of similar people. This repository contains the **complete frontend** (plain HTML, CSS and
 JavaScript – no build step) plus the **documentation the backend team needs**.

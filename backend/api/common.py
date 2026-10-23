@@ -8,7 +8,13 @@ from functools import wraps
 import jwt
 import psycopg
 from flask import g, jsonify, make_response, request
-from config import COOKIE_SAMESITE, COOKIE_SECURE, DATABASE_URL, JWT_SECRET
+from config import (
+    ACCESS_TOKEN_TTL_MINUTES,
+    COOKIE_SAMESITE,
+    COOKIE_SECURE,
+    DATABASE_URL,
+    JWT_SECRET,
+)
 
 
 def conn():
@@ -41,10 +47,11 @@ def token_hash(value):
 
 
 def access_token(user_id):
-    # The token identifies the user (sub) and expires after 15 minutes (exp).
+    # The token identifies the user (sub) and expires after the configured TTL.
     payload = {
         "sub": str(user_id),
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "exp": datetime.now(timezone.utc)
+        + timedelta(minutes=ACCESS_TOKEN_TTL_MINUTES),
     }
     # Sign the token so later requests can be checked with the same secret.
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")

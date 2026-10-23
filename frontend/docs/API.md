@@ -50,11 +50,11 @@ implementation and known fallback endpoints are documented in
 
 ## 2. Authentication
 
-- **Access token**: JWT, valid ~15 min, returned in the JSON body. The frontend keeps it **in memory only**.
+- **Access token**: JWT, valid 15 minutes by default, returned in the JSON body. In the split-VM HTTP demo, the frontend keeps it in `sessionStorage` so it survives page navigation; set `ACCESS_TOKEN_TTL_MINUTES=1440` on the backend for a 24-hour demo session. This exposes the token to JavaScript and is for disposable demo data only.
 - **Refresh token**: random string, valid 30 days, set by the backend as cookie
   `Set-Cookie: refresh_token=…; HttpOnly; SameSite=Lax; Path=/api/v1/auth` in the HTTP demo.
   Use `Secure` with HTTPS in production. Store only its hash.
-- Every page calls `POST /auth/refresh` when it loads (multi-page app → memory is lost on navigation). Rotate the refresh token on each call.
+- On same-origin deployments, every page calls `POST /auth/refresh` when it loads and rotates the refresh token. In the split-VM HTTP demo, the frontend first validates the `sessionStorage` access token with `GET /me` because cross-site refresh cookies are not reliable.
 
 ### `GET /auth/username-available?username=lena.meier` — public
 `200 { "available": true }`

@@ -1,5 +1,8 @@
 # Activ-Ate backend
 
+For deployment on the existing Linux VMs with Google Cloud SQL, follow
+[GCP_DEPLOYMENT.md](../GCP_DEPLOYMENT.md).
+
 Backend REST di Activ-Ate, realizzato con Flask e PostgreSQL remoto
 (Supabase o PostgreSQL installato su un altro server).
 

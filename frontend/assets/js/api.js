@@ -4,15 +4,21 @@
  * Every function below maps 1:1 to an endpoint documented in docs/API.md.
  * A backend developer implements those endpoints and sets CONFIG.USE_MOCK_API = false.
  *
- * Auth model (see docs/API.md › Authentication):
- *  - access token (JWT, short-lived) is kept in memory only and sent as "Authorization: Bearer …"
- *  - refresh token is an HttpOnly cookie set by the backend; every page calls auth.restore() on load,
- *    which calls POST /auth/refresh to obtain a fresh access token.
+ * Demo auth model for two-VM HTTP deployments:
+ *  - access token is kept in sessionStorage and sent as "Authorization: Bearer …"
+ *  - same-origin deployments can still use the HttpOnly refresh cookie.
  */
 import { CONFIG } from './config.js';
 
-let accessToken = null;
+let accessToken = (() => {
+  try { return sessionStorage.getItem('activate.accessToken'); } catch { return null; }
+})();
 let mockModule = null;
+
+function clearSession() {
+  accessToken = null;
+  try { sessionStorage.removeItem('activate.accessToken'); } catch { /* storage may be disabled */ }
+}
 
 export class ApiError extends Error {
   constructor(status, body = {}) {
@@ -85,7 +91,10 @@ const patch = (p, b = {}) => request('PATCH', p, b);
 const del = (p) => request('DELETE', p);
 
 function setSession(data) {
-  if (data && data.access_token) accessToken = data.access_token;
+  if (data && data.access_token) {
+    accessToken = data.access_token;
+    try { sessionStorage.setItem('activate.accessToken', accessToken); } catch { /* storage may be disabled */ }
+  }
   return data;
 }
 
@@ -97,12 +106,18 @@ export const auth = {
   login: async (username, password, remember_me) => setSession(await post('/auth/login', { username, password, remember_me })),
   /** POST /auth/refresh (uses HttpOnly cookie) → { access_token, user }. Returns user or null. */
   restore: async () => {
+    // Reuse the demo access token across page navigations on split-IP HTTP hosting.
+    if (accessToken) {
+      const { status, data } = await transport('GET', '/me');
+      if (status === 200) return data;
+      clearSession();
+    }
     try {
       const data = setSession(await request('POST', '/auth/refresh', {}, { retryOn401: false }));
       return data.user;
-    } catch { accessToken = null; return null; }
+    } catch { clearSession(); return null; }
   },
-  logout: async () => { try { await post('/auth/logout'); } finally { accessToken = null; } },
+  logout: async () => { try { await post('/auth/logout'); } finally { clearSession(); } },
   usernameAvailable: (username) => get('/auth/username-available', { username }),
   requestPasswordReset: (identifier) => post('/auth/password-reset', { identifier }),
   confirmPasswordReset: (token, new_password) => post('/auth/password-reset/confirm', { token, new_password }),

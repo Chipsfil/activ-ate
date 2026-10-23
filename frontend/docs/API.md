@@ -277,7 +277,8 @@ The dashboard's "Add to my plan" creates `POST /workouts` with `status: "planned
 
 Users are **assigned automatically** to a network of similar people (BACKEND.md › Network assignment).
 There is no friend request, no search for other users and no messaging. The only social action is a **cheer**
-for a member who reached their goal. Habits: `exercise | sleep | water`.
+for a member who reached their goal. The current backend implementation supports the `exercise` habit
+(weekly exercise minutes) only. Requests for `sleep` or `water` return `422 unsupported_habit`.
 
 ### `GET /community/network`
 ```json

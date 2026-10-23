@@ -110,11 +110,7 @@ const logOn = (u, d) => db().daily_logs.find((l) => l.user_id === u.id && l.log_
 const sportMatches = (w, g) => (g.sport_id && w.sport_id === g.sport_id) || w.sport.toLowerCase() === g.sport.toLowerCase();
 
 function streak(u) {
-  const active = new Set([
-    ...doneWorkouts(u).map((w) => w.performed_on),
-    ...db().meals.filter((m) => m.user_id === u.id).map((m) => m.eaten_on),
-    ...db().daily_logs.filter((l) => l.user_id === u.id).map((l) => l.log_date),
-  ]);
+  const active = new Set(doneWorkouts(u).map((w) => w.performed_on));
   let d = active.has(today()) ? today() : addDays(today(), -1);
   let current = 0;
   while (active.has(d)) { current++; d = addDays(d, -1); }

@@ -86,7 +86,7 @@ Community data is shared automatically within a network; the only interaction is
 - Nutrition goal progress = days of this week (so far) on which the daily total met the target (protein ≥ target; water from `daily_logs`).
 
 ### 3.4 Streaks
-- Dashboard streak = consecutive days (counting back from today, or from yesterday if today has no entry yet) with at least one logged workout, meal or check-in. Best = longest run in the last 120 days.
+- Dashboard streak = consecutive days (counting back from today, or from yesterday if today has no workout yet) with at least one done workout. Best = longest run in the last 120 days.
 - Community streaks per habit: exercise = days in a row with a done workout; sleep = nights in a row with `sleep_hours ≥ sleep_goal_h`; water = days in a row with `water_l ≥ water goal`.
 
 ### 3.5 Goal check (`POST /goals/check`) – rule based, no AI

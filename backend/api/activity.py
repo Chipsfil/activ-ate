@@ -72,6 +72,34 @@ def goal_progress(c, start, end):
     return result
 
 
+def streak_summary(c, user_id, today=None):
+    today = today or date.today()
+    active_dates = {
+        row["active_date"]
+        for row in c.execute(
+            "SELECT performed_on AS active_date FROM workouts "
+            "WHERE user_id=%s AND status='done'",
+            (user_id,),
+        )
+    }
+
+    current_day = today if today in active_dates else today - timedelta(days=1)
+    current = 0
+    while current_day in active_dates:
+        current += 1
+        current_day -= timedelta(days=1)
+
+    best = 0
+    run = 0
+    for offset in range(120, -1, -1):
+        if today - timedelta(days=offset) in active_dates:
+            run += 1
+            best = max(best, run)
+        else:
+            run = 0
+    return {"current": current, "best": best}
+
+
 def personal_bests(c, user_id, weeks):
     rows = c.execute(
         "SELECT sport_name,performed_on,duration_min,distance_km "
@@ -198,6 +226,7 @@ def dashboard():
                 (g.user_id, current),
             ).fetchone()["minutes"]
             days.append({"date": iso(current), "minutes": int(total) if current <= date.today() else None})
+        streak = streak_summary(c, g.user_id)
     return {
         "date": iso(day),
         "checkin": dict(log) if log else {"sleep_hours": None, "water_l": None},
@@ -207,7 +236,7 @@ def dashboard():
         },
         "week": week,
         "days": days,
-        "streak": {"current": 0, "best": 0},
+        "streak": streak,
         "goal_progress": progress,
         "recent_workouts": [workout_json(row) for row in recent],
         "network_top": [],

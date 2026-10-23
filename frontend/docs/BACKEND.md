@@ -49,7 +49,6 @@ except public auth routes, `/sports` and `/health`.
 | `user_sports` | user_id, sport_id (nullable), name | free text allowed (sport_id null) |
 | `activity_goals` | id, user_id, sport_id (nullable), sport_name, minutes_per_session, sessions_per_week | |
 | `nutrition_goals` | user_id, nutrient (enum), amount | unit derived from nutrient |
-| `weight_goals` | user_id (pk), start_kg, target_kg, target_date | |
 | `workouts` | id, user_id, sport_id (nullable), sport_name, title, performed_on, duration_min, distance_km, intensity, notes, kcal, status (done/planned), created_at | index (user_id, performed_on) |
 | `meals` | id, user_id, eaten_on, meal_type, description, source (ai/manual), kcal, protein_g, carbs_g, fat_g, estimate_id, edited (bool), created_at | index (user_id, eaten_on) |
 | `meal_items` | id, meal_id, name, amount_g, kcal, protein_g, carbs_g, fat_g, assumed | |
@@ -68,11 +67,11 @@ Community data is shared automatically within a network; the only interaction is
 
 ## 3. Business rules
 
-### 3.1 Calorie & macro targets (`computed_defaults`, used when the user sets no own goal)
+### 3.1 Calorie & macro recommendations
 - BMR (Mifflin-St Jeor): `10·kg + 6.25·cm − 5·age + s`, with s = +5 (male), −161 (female), −78 (diverse/unspecified).
 - TDEE = BMR × 1.55 (moderately active). Goal adjustment: lose_weight −400 kcal, gain_muscle +250 kcal. Round to 50.
 - Protein: 1.8 g/kg (gain_muscle), else 1.4 g/kg. Fat: 30 % of kcal ÷ 9. Carbs: remaining kcal ÷ 4. Water: 2 L. Sleep: 8 h.
-- `POST /me/onboarding/complete` stores calories, protein and water goals if the user added none.
+- These values may be used for recommendations, but onboarding does not store nutrition goals unless the user explicitly adds them.
 
 ### 3.2 Calories burned per workout
 `kcal = MET × intensity_factor × body_weight_kg × duration_min / 60`

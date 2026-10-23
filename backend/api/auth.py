@@ -1,5 +1,3 @@
-from datetime import date
-
 import psycopg
 from flask import Blueprint, make_response, request
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -45,9 +43,9 @@ def register():
         )
 
     dob = parse_date(values["date_of_birth"])
-    if not dob or (date.today() - dob).days < 16 * 365:
+    if not dob:
         return err(
-            "You must be at least 16 years old.",
+            "Date of birth must be a valid date.",
             "validation_error",
             422,
             "date_of_birth",
@@ -75,10 +73,10 @@ def register():
                     values["first_name"], values["last_name"], values["gender"],
                     dob, values["height_cm"],
                 ),
-            ).fetchone()
+            ).fetchone(            )
             connection.execute(
                 "INSERT INTO body_weights(user_id,weight_kg,measured_on) "
-                "VALUES(%s,%s,current_date)",
+                "VALUES(%s,%s,CURRENT_DATE)",
                 (user["id"], values["weight_kg"]),
             )
             connection.commit()

@@ -145,7 +145,6 @@ async function enterStep3() {
     const t = await me.getTargets();
     if (t.activity_goals?.length) state.acts = t.activity_goals.map((g) => ({ sport: g.sport, sport_id: g.sport_id, minutes_per_session: g.minutes_per_session, sessions_per_week: g.sessions_per_week }));
     if (t.nutrition_goals?.length) state.nuts = t.nutrition_goals.map((n) => ({ nutrient: n.nutrient, amount: n.amount }));
-    else state.nuts = [{ nutrient: 'calories', amount: t.computed_defaults.kcal }, { nutrient: 'protein', amount: t.computed_defaults.protein_g }, { nutrient: 'water', amount: 2 }];
     if (t.weight_goal) { f3.target_kg.value = t.weight_goal.target_kg; f3.target_date.value = t.weight_goal.target_date || ''; }
   } catch { /* keep empty */ }
   renderActs(); renderNuts();
@@ -190,7 +189,7 @@ function renderNuts() {
       <span class="icon-box icon-box--warm" style="width:36px;height:36px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 2v9a3 3 0 0 0 3 3v8M7 2v6M11 2v6M17 2c-2 2-3 5-3 9h3v11"/></svg></span>
       <b class="grow">${n.nutrient === 'water' ? 'Drink' : n.nutrient === 'sugar' ? 'Max.' : n.nutrient === 'calories' ? 'Eat about' : 'Eat'} ${esc(n.amount)} ${UNITS[n.nutrient]}${n.nutrient === 'calories' ? '' : ' ' + NUT_LABEL[n.nutrient]} every day</b>
       <button type="button" class="btn btn--icon btn--small" data-nut="${i}" aria-label="Remove goal">×</button>
-    </div>`).join('') : '<div class="empty">No nutrition goal – we will use recommended values.</div>';
+    </div>`).join('') : '<div class="empty">No nutrition goals configured.</div>';
 }
 $('#nut-list').addEventListener('click', (e) => {
   const b = e.target.closest('[data-nut]');
@@ -217,7 +216,7 @@ f3.addEventListener('submit', async (e) => {
     await me.saveTargets({
       activity_goals: state.acts,
       nutrition_goals: state.nuts,
-      weight_goal: target_kg ? { target_kg: Number(target_kg), target_date: f3.target_date.value || null } : null,
+      ...(target_kg ? { weight_goal: { target_kg: Number(target_kg), target_date: f3.target_date.value || null } } : {}),
     });
     const { network } = await me.completeOnboarding();
     $('#step-3').hidden = true;

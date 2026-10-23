@@ -122,10 +122,9 @@ At least one goal and one sport (422). Sets `onboarding_step` 2 → 3. `200 { go
   "nutrition_goals": [{ "nutrient": "protein", "amount": 140, "unit": "g" }],
   "sleep_goal_h": 8,
   "weight_goal": { "start_kg": 62.5, "target_kg": 67, "target_date": "2027-02-01", "current_kg": 64 },
-  "current_weight_kg": 64,
-  "computed_defaults": { "kcal": 2350, "protein_g": 115 } }
+  "current_weight_kg": 64 }
 ```
-`computed_defaults` = recommended values from profile (formula in BACKEND.md); the onboarding pre-fills them.
+Nutrition goals are only present when the user explicitly configures them; onboarding does not assign defaults.
 
 ### `PUT /me/targets` (onboarding step 3 and Goals page)
 All keys optional; only sent keys are replaced.

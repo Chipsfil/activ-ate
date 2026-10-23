@@ -148,6 +148,18 @@ def parse_date(v, default=None):
         return None
 
 
+def parse_int(v, default, minimum=None, maximum=None):
+    try:
+        value = int(v)
+    except (TypeError, ValueError):
+        return default
+    if minimum is not None:
+        value = max(minimum, value)
+    if maximum is not None:
+        value = min(maximum, value)
+    return value
+
+
 def current_weight(c, uid):
     row = c.execute(
         "SELECT weight_kg FROM body_weights "

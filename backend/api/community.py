@@ -1,24 +1,110 @@
-from flask import Blueprint
+from datetime import date, timedelta
 
-from .common import auth_required, err, placeholder
+from flask import Blueprint, g, request
+
+from .common import auth_required, conn, err, iso
 
 bp = Blueprint("community", __name__)
+
+
+def _members(c, start=None, end=None):
+    period = "AND w.performed_on BETWEEN %s AND %s" if start else ""
+    params = [start, end] if start else []
+    rows = c.execute(
+        "SELECT u.id,u.first_name,u.last_name,"
+        "COALESCE(SUM(w.duration_min),0) minutes "
+        "FROM users u LEFT JOIN workouts w ON w.user_id=u.id "
+        "AND w.status='done' " + period +
+        "GROUP BY u.id,u.first_name,u.last_name ORDER BY minutes DESC,u.first_name",
+        params,
+    ).fetchall()
+    return rows
+
+
+@bp.get("/api/v1/community/network")
+@auth_required
+def network():
+    with conn() as c:
+        members = _members(c)
+    return {
+        "id": "all-users",
+        "member_count": len(members),
+        "criteria": ["All registered users"],
+        "explanation": "This simple version puts all users in one network.",
+        "shared_data": ["Exercise minutes", "Workout type and duration"],
+    }
+
+
+@bp.get("/api/v1/community/leaderboard")
+@auth_required
+def leaderboard():
+    start = date.today() - timedelta(days=date.today().weekday())
+    with conn() as c:
+        rows = _members(c, start, start + timedelta(days=6))
+    result = []
+    for rank, row in enumerate(rows, 1):
+        result.append({
+            "member_id": str(row["id"]),
+            "display_name": f"{row['first_name']} {row['last_name'][0]}.",
+            "initials": (row["first_name"][0] + row["last_name"][0]).upper(),
+            "is_me": str(row["id"]) == str(g.user_id),
+            "value": int(row["minutes"]),
+            "rank": rank,
+        })
+    return {
+        "habit": request.args.get("habit", "exercise"),
+        "unit": "min",
+        "period": "week",
+        "target_label": "Weekly target",
+        "rows": result,
+        "summary": {
+            "my_rank": next((x["rank"] for x in result if x["is_me"]), None),
+            "member_count": len(result),
+        },
+    }
+
 
 @bp.get("/api/v1/community/members/<mid>")
 @auth_required
 def member(mid):
-    return err("Member not found.", "not_found", 404)
+    start = date.today() - timedelta(days=date.today().weekday())
+    with conn() as c:
+        row = c.execute("SELECT id,first_name,last_name FROM users WHERE id=%s", (mid,)).fetchone()
+        if not row: return err("Member not found.", "not_found", 404)
+        history = c.execute(
+            "SELECT performed_on,COALESCE(SUM(duration_min),0) minutes "
+            "FROM workouts WHERE user_id=%s AND status='done' "
+            "GROUP BY performed_on ORDER BY performed_on DESC LIMIT 30", (mid,),
+        ).fetchall()
+    return {
+        "member": {
+            "id": str(row["id"]),
+            "display_name": f"{row['first_name']} {row['last_name'][0]}.",
+            "initials": (row["first_name"][0] + row["last_name"][0]).upper(),
+        },
+        "history": [{"date": iso(x["performed_on"]), "minutes": int(x["minutes"])} for x in history],
+        "week_start": iso(start),
+    }
 
 
 @bp.post("/api/v1/community/members/<mid>/cheers")
 @auth_required
 def cheer(mid):
-    return err("This member cannot be cheered yet.", "goal_not_reached", 409)
+    return {"message": "Cheers are not enabled in the simple backend."}, 200
 
-for path, name, value in [
-    ("/community/network","network",{"id":None,"member_count":1,"criteria":[],"explanation":"Your network is assigned automatically.","shared_data":["Exercise minutes","Workout type and duration","Streaks","Sleep hours","Water intake"]}),
-    ("/community/leaderboard","leaderboard",{"habit":"exercise","unit":"min","period":"week","target_label":"Weekly target","rows":[],"summary":{"my_rank":1,"member_count":1}}),
-    ("/community/insights","insights",{"habit":"exercise","items":[]}),
-    ("/feed","feed",{"items":[]}),
-]:
-    bp.add_url_rule("/api/v1"+path,name,placeholder(name,value),methods=["GET"])
+
+@bp.get("/api/v1/community/insights")
+@auth_required
+def insights():
+    with conn() as c:
+        rows = _members(c)
+    return {"habit": request.args.get("habit", "exercise"), "items": [
+        {"member_id": str(x["id"]), "minutes": int(x["minutes"])}
+        for x in rows[:5]
+    ]}
+
+
+@bp.get("/api/v1/feed")
+@auth_required
+def feed():
+    return {"items": []}

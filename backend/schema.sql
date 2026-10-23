@@ -11,8 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   gender text NOT NULL, 
   date_of_birth date NOT NULL,
   height_cm numeric(5,1) NOT NULL CHECK (height_cm BETWEEN 100 AND 250),
-  onboarding_step text NOT NULL DEFAULT '2', 
-  sleep_goal_h numeric(4,1) NOT NULL DEFAULT 8,
+  onboarding_step text NOT NULL DEFAULT '2',
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS refresh_sessions (
@@ -57,12 +56,6 @@ CREATE TABLE IF NOT EXISTS nutrition_goals (
   user_id uuid REFERENCES users(id) ON DELETE CASCADE, 
   nutrient text NOT NULL, amount numeric(8,2) NOT NULL,
   PRIMARY KEY(user_id, nutrient)
-);
-CREATE TABLE IF NOT EXISTS weight_goals (
-  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, 
-  start_kg numeric(5,2),
-  target_kg numeric(5,2) NOT NULL, 
-  target_date date NOT NULL
 );
 CREATE TABLE IF NOT EXISTS workouts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), 

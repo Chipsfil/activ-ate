@@ -278,8 +278,9 @@ function validateRegistration(b) {
   const w = Number(b.weight_kg); const h = Number(b.height_cm);
   if (!(w >= 30 && w <= 300)) fail(422, 'validation_error', 'Weight must be between 30 and 300 kg.', 'weight_kg');
   if (!(h >= 100 && h <= 250)) fail(422, 'validation_error', 'Height must be between 100 and 250 cm.', 'height_cm');
-  const years = daysBetween(b.date_of_birth, today()) / 365.25;
-  if (!(years >= 16 && years <= 110)) fail(422, 'validation_error', 'You must be at least 16 years old.', 'date_of_birth');
+  if (!b.date_of_birth || Number.isNaN(Date.parse(b.date_of_birth))) {
+    fail(422, 'validation_error', 'Date of birth must be a valid date.', 'date_of_birth');
+  }
 }
 
 route('GET', '/auth/username-available', ({ q }) => {
@@ -411,10 +412,6 @@ route('PUT', '/me/targets', async ({ user, body }) => {
 
 route('POST', '/me/onboarding/complete', ({ user }) => {
   if (!user.goals.length) fail(409, 'onboarding_incomplete', 'Please finish the previous steps first.');
-  if (!(user.nutrition_goals || []).length) {
-    const t = nutritionTargets(user);
-    user.nutrition_goals = [{ nutrient: 'calories', amount: t.kcal }, { nutrient: 'protein', amount: t.protein_g }, { nutrient: 'water', amount: 2 }];
-  }
   const net = networkFor(user);
   user.network_id = net.id;
   user.onboarding_step = 'done';

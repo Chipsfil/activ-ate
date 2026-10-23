@@ -25,3 +25,5 @@ coverage.xml
 *.log
 *.pid
 instance/
+
+.DS_Store

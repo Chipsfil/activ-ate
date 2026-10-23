@@ -59,8 +59,6 @@ function renderNuts() {
       <label class="row small muted" style="gap:6px"><span class="sr-only">${NUT[n.nutrient].label} amount</span><input class="input" type="number" min="0" step="0.1" value="${esc(n.amount)}" data-nut="${i}" style="width:100px;min-height:40px">${NUT[n.nutrient].unit}</label>
       <button type="button" class="btn btn--icon btn--small" data-rm-nut="${i}" aria-label="Remove goal">×</button>
     </div>`);
-  rows.push(`<div class="goal-row"><span class="grow"><b>Sleep ${esc(s.sleep_goal_h)} h every night</b></span>
-      <label class="row small muted" style="gap:6px"><span class="sr-only">Sleep hours</span><input class="input" type="number" min="5" max="12" step="0.5" value="${esc(s.sleep_goal_h)}" id="sleep-goal" style="width:100px;min-height:40px">h</label><span style="width:36px"></span></div>`);
   $('#nuts').innerHTML = rows.join('');
   const missing = Object.keys(NUT).filter((k) => !s.nutrition_goals.some((n) => n.nutrient === k));
   $('#nut-add').innerHTML = missing.length ? `<span class="small muted" style="align-self:center;font-weight:600">Add:</span>${missing.map((k) => `<button type="button" class="chip" style="border-style:dashed;color:var(--brand)" data-add-nut="${k}">+ ${NUT[k].label}</button>`).join('')}` : '';
@@ -117,7 +115,6 @@ $('#add-act').addEventListener('click', () => {
 });
 $('#nuts').addEventListener('input', (e) => {
   if (e.target.dataset.nut !== undefined) { s.nutrition_goals[Number(e.target.dataset.nut)].amount = Number(e.target.value); markDirty(); }
-  if (e.target.id === 'sleep-goal') { s.sleep_goal_h = Number(e.target.value); markDirty(); }
 });
 $('#nuts').addEventListener('change', () => renderNuts());
 $('#nuts').addEventListener('click', (e) => {
@@ -148,11 +145,9 @@ saveBtn.addEventListener('click', async () => {
   if (!s.goals.length) { toast('Please keep at least one main goal.', 'error'); return; }
   setBusy(saveBtn, true, 'Saving…');
   try {
-    const target = Number($('#target-kg').value);
     const res = await meApi.saveTargets({
-      goals: s.goals, sports: s.sports, activity_goals: s.activity_goals, nutrition_goals: s.nutrition_goals,
-      sleep_goal_h: s.sleep_goal_h, current_weight_kg: Number($('#cur-kg').value) || undefined,
-      weight_goal: target ? { target_kg: target, target_date: $('#target-date').value || null } : null,
+      goals: s.goals, sports: s.sports, activity_goals: s.activity_goals,
+      current_weight_kg: Number($('#cur-kg').value),
     });
     load(res);
     dirty = false;
@@ -164,7 +159,11 @@ saveBtn.addEventListener('click', async () => {
 
 function load(t) {
   s = JSON.parse(JSON.stringify(t));
-  s.sleep_goal_h = s.sleep_goal_h || 8;
+  s.goals = Array.isArray(s.goals) ? s.goals : [];
+  s.sports = Array.isArray(s.sports) ? s.sports : [];
+  s.activity_goals = Array.isArray(s.activity_goals) ? s.activity_goals : [];
+  s.nutrition_goals = [];
+  s.weight_goal = null;
   $('#cur-kg').value = s.current_weight_kg;
   $('#target-kg').value = s.weight_goal?.target_kg ?? '';
   $('#target-date').value = s.weight_goal?.target_date ?? '';

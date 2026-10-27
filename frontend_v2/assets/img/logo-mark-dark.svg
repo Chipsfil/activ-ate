@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Activ-Ate">
+  <defs>
+    <linearGradient id="iL" x1="0.1" y1="1" x2="0.9" y2="0"><stop offset="0" stop-color="#0E1B16"/><stop offset="1" stop-color="#26463B"/></linearGradient>
+    <linearGradient id="iR" x1="0.1" y1="1" x2="0.9" y2="0"><stop offset="0" stop-color="#A8853F"/><stop offset="1" stop-color="#D9BF8A"/></linearGradient>
+    <linearGradient id="iB" gradientUnits="userSpaceOnUse" x1="27" y1="90" x2="112" y2="62"><stop offset="0" stop-color="#1E4034"/><stop offset="1" stop-color="#3B6A58"/></linearGradient>
+    <!-- right leg is cut where the bar passes in front of it -->
+    <mask id="imR" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120">
+      <rect width="120" height="120" fill="#fff"/>
+      <path d="M27 90 Q62 73 112 62" fill="none" stroke="#000" stroke-width="15.5"/>
+    </mask>
+    <!-- bar tail ends parallel to the right leg -->
+    <clipPath id="ic"><path d="M0 0 H66.9 L129.1 120 H0 Z"/></clipPath>
+    <!-- bar is cut where it passes behind the left leg -->
+    <mask id="imB" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120">
+      <rect width="120" height="120" fill="#fff"/>
+      <path d="M60 8 L6 112 L33 112 L60 60 Z" fill="#000" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path d="M60 8 L114 112 L87 112 L60 60 Z" fill="url(#iR)" mask="url(#imR)"/>
+  <path d="M27 90 Q62 73 112 62" fill="none" stroke="url(#iB)" stroke-width="9.5" mask="url(#imB)" clip-path="url(#ic)"/>
+  <path d="M60 8 L6 112 L33 112 L60 60 Z" fill="url(#iL)"/>
+  <path d="M60 8 L60 60" stroke="#F6F0E2" stroke-opacity=".55" stroke-width=".8"/>
+</svg>

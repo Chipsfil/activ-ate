@@ -29,6 +29,15 @@ def coach_context():
     return {
         "items": [
             {"label": "Name", "value": f"{user['first_name']} {user['last_name']}"},
+            {"label": "Height", "value": f"{user['height_cm']:g} cm"},
+            {
+                "label": "Weight",
+                "value": (
+                    f"{user['current_weight_kg']:g} kg"
+                    if user["current_weight_kg"] is not None
+                    else "Not recorded"
+                ),
+            },
             {
                 "label": "Sports",
                 "value": ", ".join(sport["name"] for sport in user["sports"])

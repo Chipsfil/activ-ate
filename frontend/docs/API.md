@@ -43,7 +43,7 @@ mock mode is implemented separately in `assets/js/mock/` and may differ.
 | --- | --- | --- |
 | `GET /sports?q=run&limit=8` | Public | Searches the PostgreSQL sports catalog by name or alias. Limit is clamped to 1–50. Returns `{ items: [{ id, name, category, met }] }`. |
 | `GET /dashboard?date=YYYY-MM-DD` | Authenticated | Returns selected date, check-in, today totals, week totals, daily minutes, streak, activity goal progress, and recent workouts. `network_top` and `feed` are empty. |
-| `PUT /daily-logs` | Authenticated | Upserts `{ date, sleep_hours, water_l }`; returns the saved date and values. |
+| `PUT /daily-logs` | Authenticated | Returns `501 { "message": "Not implemented in the backend" }`. |
 | `GET /workouts?limit=20&cursor=0&sport=…&status=done` | Authenticated | Lists the user's workouts, newest first. `cursor` is an offset; response is `{ items, next_cursor }`. |
 | `POST /workouts` | Authenticated | Requires `sport` and `duration_min`; optional fields include `sport_id`, `title`, `performed_on`, `distance_km`, `intensity`, `notes`, and `status`. Returns `{ workout, week }` with status 201. Calories are estimated from MET and current weight. |
 | `PATCH /workouts/{id}` | Authenticated | Accepts `{ "status": "done" }` or `{ "status": "planned" }`; returns `{ workout, week }`. |

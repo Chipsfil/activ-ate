@@ -221,24 +221,7 @@ def sports():
 @bp.put("/api/v1/daily-logs")
 @auth_required
 def save_daily_log():
-    values = body()
-    day = parse_date(values.get("date"))
-    if not day:
-        return err("Date is required.", "validation_error", 422, "date")
-    # Insert a daily check-in, or replace its values if that date already exists.
-    with conn() as connection:
-        connection.execute(
-            "INSERT INTO daily_logs(user_id,log_date,sleep_hours,water_l) "
-            "VALUES(%s,%s,%s,%s) ON CONFLICT(user_id,log_date) DO UPDATE SET "
-            "sleep_hours=EXCLUDED.sleep_hours,water_l=EXCLUDED.water_l",
-            (g.user_id, day, values.get("sleep_hours"), values.get("water_l")),
-        )
-        connection.commit()
-    return {
-        "date": iso(day),
-        "sleep_hours": values.get("sleep_hours"),
-        "water_l": values.get("water_l"),
-    }
+    return {"message": "Not implemented in the backend"}, 501
 
 
 @bp.get("/api/v1/dashboard")

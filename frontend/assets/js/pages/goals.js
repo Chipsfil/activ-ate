@@ -123,7 +123,7 @@ $('#nuts').addEventListener('click', (e) => {
 });
 $('#nut-add').addEventListener('click', (e) => {
   const b = e.target.closest('[data-add-nut]'); if (!b) return;
-  s.nutrition_goals.push({ nutrient: b.dataset.addNut, amount: NUT[b.dataset.addNut].def }); renderNuts(); markDirty();
+  toast('Nutrition is not implemented', 'error');
 });
 ['#cur-kg', '#target-kg', '#target-date'].forEach((id) => $(id).addEventListener('input', () => { renderWeight(); markDirty(); }));
 
@@ -147,7 +147,12 @@ saveBtn.addEventListener('click', async () => {
   try {
     const res = await meApi.saveTargets({
       goals: s.goals, sports: s.sports, activity_goals: s.activity_goals,
+      nutrition_goals: s.nutrition_goals,
       current_weight_kg: Number($('#cur-kg').value),
+      weight_goal: Number($('#target-kg').value) || $('#target-date').value ? {
+        target_kg: Number($('#target-kg').value),
+        target_date: $('#target-date').value || null,
+      } : null,
     });
     load(res);
     dirty = false;

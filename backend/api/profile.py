@@ -118,6 +118,8 @@ def get_targets():
 def save_targets():
     values = body()
     goals = values.get("activity_goals", [])
+    if values.get("nutrition_goals"):
+        return err("Nutrition is not implemented in the backend", "not_implemented", 501)
     if values.get("weight_goal") is not None:
         return err("Weight goals are not implemented yet.", "not_implemented", 501)
     # Only validate weight when the request includes a new weight value.

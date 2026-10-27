@@ -16,4 +16,4 @@ bp = Blueprint("nutrition", __name__)
 @auth_required
 def not_implemented(meal_id=None):
     # Authentication still runs before returning HTTP 501 (not implemented).
-    return {"message": "Nutrition is not implemented in the backend."}, 501
+    return {"message": "Nutrition is not implemented in the backend"}, 501

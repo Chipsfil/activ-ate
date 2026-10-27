@@ -9,6 +9,15 @@ import { auth, me } from '../api.js';
 import { $, $$, esc, setBusy, clearErrors, showError, debounce, toast } from '../ui.js';
 import { sportCombobox } from '../components/sport-combobox.js';
 
+$('#onboarding-logo').addEventListener('click', async (event) => {
+  event.preventDefault();
+  try {
+    await auth.logout();
+  } finally {
+    window.location.replace('signin.html');
+  }
+});
+
 const TITLES = {
   1: ['About you', 'Create your account and tell us a bit about yourself.'],
   2: ['Goals & sports', 'What do you want to achieve, and which sports do you do?'],
@@ -197,11 +206,7 @@ $('#nut-list').addEventListener('click', (e) => {
 });
 $('#nut-kind').addEventListener('change', () => { $('#nut-unit').textContent = UNITS[$('#nut-kind').value]; });
 $('#add-nut').addEventListener('click', () => {
-  const nutrient = $('#nut-kind').value; const amount = Number($('#nut-amount').value);
-  if (!(amount > 0)) { toast('Please enter an amount.', 'error'); return; }
-  state.nuts = state.nuts.filter((n) => n.nutrient !== nutrient).concat([{ nutrient, amount }]);
-  $('#nut-amount').value = '';
-  renderNuts();
+  toast('Nutrition is not implemented', 'error');
 });
 $('#back-3').addEventListener('click', () => showStep(2));
 

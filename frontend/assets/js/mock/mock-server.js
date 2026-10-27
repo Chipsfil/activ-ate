@@ -174,7 +174,7 @@ function membersOf(net) {
   for (let i = 0; i < 7; i++) {
     const [first, last] = pool.splice(Math.floor(r() * pool.length), 1)[0];
     list.push({
-      id: `${net.id}-${i}`, first_name: first, last_name: last, display_name: `${first} ${last[0]}.`, initials: first[0] + last[0],
+      id: `${net.id}-${i}`, username: `${first.toLowerCase()}_${last.toLowerCase()}`, display_name: `${first.toLowerCase()}_${last.toLowerCase()}`, initials: `${first[0]}${last[0]}`,
       joined: `2025-${String(1 + Math.floor(r() * 9)).padStart(2, '0')}-01`,
       sports: [MEMBER_SPORTS[Math.floor(r() * 8)], MEMBER_SPORTS[Math.floor(r() * 8)]].filter((v, j, a) => a.indexOf(v) === j),
     });
@@ -733,7 +733,7 @@ route('GET', '/community/members/:id', ({ user, params, q }) => {
   });
   const fmtT = (s) => (habit === 'exercise' ? `${s.target} min / week` : habit === 'sleep' ? `${s.daily_target} h / night` : `${s.daily_target} L / day`);
   return {
-    member: { id: m.id, display_name: `${m.first_name} ${m.last_name}`, initials: m.initials, joined: m.joined, sports: m.sports, rank: row.rank, streak: row.streak },
+    member: { id: m.id, display_name: m.username, initials: m.initials, joined: m.joined, sports: m.sports, rank: row.rank, streak: row.streak },
     habit, period, unit,
     targets: { member: fmtT(row), me: fmtT(mine) },
     totals: { member: habit === 'exercise' ? Math.round(row.value * factor) : round1(row.value * factor), me: myTotal },

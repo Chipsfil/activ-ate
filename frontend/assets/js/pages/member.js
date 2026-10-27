@@ -38,7 +38,7 @@ function render(d) {
 
   // Activity log
   $('#log-title').textContent = `Recent activity · ${habitName}`;
-  $('#their-target').innerHTML = `${esc(m.display_name.split(' ')[0])}'s target: <b>${esc(d.targets.member)}</b>`;
+  $('#their-target').innerHTML = `${esc(m.display_name)}'s target: <b>${esc(d.targets.member)}</b>`;
   const ex = d.habit === 'exercise';
   $('#log').innerHTML = `<div class="tr th"><span>Date</span><span>${ex ? 'Sport' : 'Total'}</span><span>${ex ? 'Duration' : 'Status'}</span></div>` +
     d.log.map((l) => `<div class="tr"><b>${formatDate(l.date)}</b><span>${ex ? esc(l.label) : `${fmt(l.value, 1)} ${l.unit === 'h' ? 'hours' : 'liters'}`}</span>${ex ? `<span>${l.value} min</span>` : (l.met
@@ -47,20 +47,20 @@ function render(d) {
 
   // Comparison
   $('#compare-title').textContent = `Direct comparison · ${PERIOD[d.period]}`;
-  $('#t-them-label').textContent = `${m.display_name.split(' ')[0]}'s target`;
+  $('#t-them-label').textContent = `${m.display_name}'s target`;
   $('#t-them').textContent = d.targets.member;
   $('#t-me').textContent = d.targets.me;
-  $('#name-them').textContent = m.display_name.split(' ')[0];
+  $('#name-them').textContent = m.display_name;
   const max = Math.max(d.totals.member, d.totals.me, 1);
   const digits = d.habit === 'exercise' ? 0 : 1;
   $('#compare').innerHTML = `
     <div class="col"><span class="num" style="font-size:20px">${fmt(d.totals.member, digits)} ${UNIT[d.habit]}</span><div class="cbar cbar--them" style="height:${Math.max(4, Math.round((d.totals.member / max) * 190))}px"></div></div>
     <div class="col"><span class="num" style="font-size:20px">${fmt(d.totals.me, digits)} ${UNIT[d.habit]}</span><div class="cbar cbar--me" style="height:${Math.max(4, Math.round((d.totals.me / max) * 190))}px"></div></div>`;
   const diff = d.totals.member - d.totals.me;
-  $('#compare-text').textContent = diff > 0 ? `${m.display_name.split(' ')[0]} is ahead by ${fmt(diff, digits)} ${UNIT[d.habit]} (${PERIOD[d.period]}).` : diff < 0 ? `You are ahead by ${fmt(-diff, digits)} ${UNIT[d.habit]} (${PERIOD[d.period]}).` : 'You are exactly level.';
+  $('#compare-text').textContent = diff > 0 ? `${m.display_name} is ahead by ${fmt(diff, digits)} ${UNIT[d.habit]} (${PERIOD[d.period]}).` : diff < 0 ? `You are ahead by ${fmt(-diff, digits)} ${UNIT[d.habit]} (${PERIOD[d.period]}).` : 'You are exactly level.';
 
   // Cheer card – the only social action
-  const first = m.display_name.split(' ')[0];
+  const first = m.display_name;
   $('#cheer-card').innerHTML = d.goal_reached
     ? `<h2>${esc(first)} reached the goal</h2><p class="small muted">${esc(first)} hit the ${habitName.toLowerCase()} target this week. ${d.cheered_by_me ? 'You already cheered.' : 'Send a cheer to keep the motivation up.'}</p>
        ${d.can_cheer ? `<button type="button" class="btn btn--primary" id="cheer" style="align-self:flex-start">${icons.clap}Cheer ${esc(first)}</button>` : `<span class="small" style="color:var(--brand);font-weight:700">Cheered ✓ · ${d.cheer_count} cheers</span>`}`

@@ -91,9 +91,9 @@ def _member_stats(connection, user, start, end, elapsed, current_user_id):
     return {
         "member_id": "me" if is_me else str(user_id),
         "display_name": (
-            "You" if is_me else f"{user['first_name']} {user['last_name'][0]}."
+            "You" if is_me else user["username"]
         ),
-        "initials": (user["first_name"][0] + user["last_name"][0]).upper(),
+        "initials": user["username"][:2].upper(),
         "is_me": is_me,
         "value": value,
         "target": target,
@@ -112,7 +112,7 @@ def _leaderboard(connection, current_user_id):
     today = date.today()
     elapsed = (today - start).days + 1
     users = connection.execute(
-        "SELECT id,first_name,last_name FROM users ORDER BY first_name,last_name,id"
+        "SELECT id,username FROM users ORDER BY username,id"
     ).fetchall()
     rows = [
         _member_stats(connection, user, start, today, elapsed, current_user_id)
@@ -195,7 +195,7 @@ def member(member_id):
         )
     with conn() as connection:
         row = connection.execute(
-            "SELECT id,first_name,last_name,created_at FROM users WHERE id=%s",
+            "SELECT id,username,created_at FROM users WHERE id=%s",
             (member_id,),
         ).fetchone()
         if not row:
@@ -231,8 +231,8 @@ def member(member_id):
     return {
         "member": {
             "id": str(row["id"]),
-            "display_name": f"{row['first_name']} {row['last_name']}",
-            "initials": (row["first_name"][0] + row["last_name"][0]).upper(),
+            "display_name": row["username"],
+            "initials": row["username"][:2].upper(),
             "joined": iso(row["created_at"].date()),
             "sports": [sport["name"] for sport in sports],
             "rank": stats["rank"],

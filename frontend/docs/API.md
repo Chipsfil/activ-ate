@@ -24,8 +24,6 @@ mock mode is implemented separately in `assets/js/mock/` and may differ.
 | `POST /auth/login` | Public | Accepts username or email and password. Returns `{ access_token, user }`; invalid credentials return 401. |
 | `POST /auth/refresh` | Public, cookie | Rotates a valid refresh session and returns `{ access_token, user }`; otherwise 401. |
 | `POST /auth/logout` | Public, cookie | Revokes the refresh session and returns 204. |
-| `POST /auth/password-reset` | Public | Returns a generic acknowledgement with status 202. Email delivery is not implemented. |
-| `POST /auth/password-reset/confirm` | Public | Currently returns `{ message: "Password changed." }`; token validation and password change are not implemented. |
 | `GET /me` | Authenticated | Returns the user profile, goals, sports, and current weight. |
 | `PUT /me/goals` | Authenticated | Accepts `goals` and `sports`; both must be non-empty. Replaces them and advances onboarding. |
 | `GET /me/targets` | Authenticated | Returns activity goals and current weight. Nutrition goals are empty and `weight_goal` is null. |

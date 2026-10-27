@@ -163,14 +163,3 @@ def logout():
     response = make_response("", 204)
     response.delete_cookie("refresh_token", path="/api/v1/auth")
     return response
-
-
-@bp.post("/api/v1/auth/password-reset")
-def password_reset():
-    # Email delivery is not implemented; preserve the generic acknowledgement.
-    return {"message": "If an account exists, a reset link has been sent."}, 202
-
-
-@bp.post("/api/v1/auth/password-reset/confirm")
-def password_reset_confirm():
-    return {"message": "Password changed."}

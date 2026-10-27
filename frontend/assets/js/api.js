@@ -119,8 +119,6 @@ export const auth = {
   },
   logout: async () => { try { await post('/auth/logout'); } finally { clearSession(); } },
   usernameAvailable: (username) => get('/auth/username-available', { username }),
-  requestPasswordReset: (identifier) => post('/auth/password-reset', { identifier }),
-  confirmPasswordReset: (token, new_password) => post('/auth/password-reset/confirm', { token, new_password }),
 };
 
 /* ------------------------------------------------------- Profile & goals */

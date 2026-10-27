@@ -318,30 +318,6 @@ route('POST', '/auth/logout', ({ token }) => {
   db().refresh = null;
 }, { auth: false });
 
-route('POST', '/auth/password-reset', ({ body }) => {
-  const id = String(body.identifier || '').toLowerCase();
-  if (!id) fail(422, 'validation_error', 'Please enter your email or username.', 'identifier');
-  const u = db().users.find((x) => x.username.toLowerCase() === id || x.email.toLowerCase() === id);
-  let devLink = null;
-  if (u) {
-    const token = uid('rt-');
-    db().reset_tokens.push({ token, user_id: u.id, expires: Date.now() + 30 * 60000, used: false });
-    devLink = `reset-password.html?token=${token}`;
-  }
-  // The real backend sends the link by email and NEVER returns it. The mock returns it for testing.
-  return withStatus(202, { message: 'If an account exists, a reset link has been sent.', _mock_reset_link: devLink });
-}, { auth: false });
-
-route('POST', '/auth/password-reset/confirm', ({ body }) => {
-  const t = db().reset_tokens.find((x) => x.token === body.token);
-  if (!t || t.used || t.expires < Date.now()) fail(400, 'invalid_token', 'This reset link is invalid or has expired. Please request a new one.');
-  if (String(body.new_password || '').length < 8) fail(422, 'validation_error', 'The password needs at least 8 characters.', 'new_password');
-  const u = db().users.find((x) => x.id === t.user_id);
-  u.password = body.new_password; t.used = true;
-  Object.keys(db().tokens).forEach((k) => { if (db().tokens[k] === u.id) delete db().tokens[k]; });
-  return { message: 'Password changed.' };
-}, { auth: false });
-
 /* ================================================================ ME / GOALS */
 route('GET', '/me', ({ user }) => publicUser(user));
 

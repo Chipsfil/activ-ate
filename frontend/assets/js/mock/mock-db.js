@@ -46,7 +46,7 @@ function seed() {
   const data = {
     seeded: true,
     users: [], weights: [], tokens: {}, refresh: null,
-    workouts: [], meals: [], estimates: [], daily_logs: [], cheers: [], chats: [], reset_tokens: [],
+    workouts: [], meals: [], estimates: [], daily_logs: [], cheers: [], chats: [],
   };
   const t = today();
   const user = {

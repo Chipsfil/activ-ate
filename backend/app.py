@@ -18,14 +18,8 @@ from config import FRONTEND_ORIGIN, HOST, PORT
 from api.common import err
 
 app = Flask(__name__)
-# Accept both spellings of the configured local frontend address.
-frontend_origins = {
-    FRONTEND_ORIGIN,
-    FRONTEND_ORIGIN.replace("localhost", "127.0.0.1"),
-    FRONTEND_ORIGIN.replace("127.0.0.1", "localhost"),
-}
-# Allow the configured frontend origins to make requests with cookies.
-CORS(app, origins=list(frontend_origins), supports_credentials=True)
+# Allow only the configured frontend origin to make requests with cookies.
+CORS(app, origins=[FRONTEND_ORIGIN], supports_credentials=True)
 # Attach each domain's routes to the same Flask application.
 for module in (
     auth,

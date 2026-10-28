@@ -103,7 +103,7 @@ export const auth = {
   /** POST /auth/register → { access_token, user } */
   register: async (payload) => setSession(await post('/auth/register', payload)),
   /** POST /auth/login → { access_token, user } */
-  login: async (username, password, remember_me) => setSession(await post('/auth/login', { username, password, remember_me })),
+  login: async (username, password) => setSession(await post('/auth/login', { username, password })),
   /** POST /auth/refresh (uses HttpOnly cookie) → { access_token, user }. Returns user or null. */
   restore: async () => {
     // Reuse the demo access token across page navigations on split-IP HTTP hosting.

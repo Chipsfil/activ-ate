@@ -4,14 +4,12 @@ import { $, setBusy, clearErrors, showError } from '../ui.js';
 import { wireRevealButtons } from './auth-common.js';
 
 const form = $('#signin-form');
-const remember = $('#remember');
 const params = new URLSearchParams(location.search);
 if (params.get('expired')) $('#expired-note').hidden = false;
 if (CONFIG.USE_MOCK_API) $('#mock-note').hidden = false;
 if (params.get('reset')) { const n = $('#expired-note'); n.textContent = 'Password changed. Please sign in with your new password.'; n.hidden = false; }
 
 wireRevealButtons();
-remember.addEventListener('click', () => remember.setAttribute('aria-checked', String(remember.getAttribute('aria-checked') !== 'true')));
 
 // Already signed in? Go straight to the app.
 auth.restore().then((user) => { if (user) location.replace(user.onboarding_step === 'done' ? 'dashboard.html' : 'signup.html'); });
@@ -26,7 +24,7 @@ form.addEventListener('submit', async (e) => {
   const btn = form.querySelector('[type="submit"]');
   setBusy(btn, true, 'Signing in…');
   try {
-    const { user } = await auth.login(username, password, remember.getAttribute('aria-checked') === 'true');
+    const { user } = await auth.login(username, password);
     const fresh = user || (await me.get());
     location.href = fresh.onboarding_step === 'done' ? 'dashboard.html' : 'signup.html';
   } catch (err) {

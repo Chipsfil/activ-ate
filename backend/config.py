@@ -13,10 +13,7 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 JWT_SECRET = os.environ["JWT_SECRET"]
 
 # Use the single frontend address that the browser uses to open the app.
-FRONTEND_ORIGIN = os.environ.get(
-    "FRONTEND_ORIGIN",
-    "http://localhost:8080",
-).strip()
+FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:8080")
 
 # Optional settings
 # Environment values are strings, so convert the cookie flag and port number.

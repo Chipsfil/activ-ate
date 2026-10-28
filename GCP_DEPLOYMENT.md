@@ -46,6 +46,10 @@ the file. From `~/activ-ate/backend`:
 python3 app.py
 ```
 
+For local development, set `FRONTEND_ORIGIN=http://localhost:8080` in
+`backend/.env` and open the frontend at exactly `http://localhost:8080`.
+For GCP, replace it with the frontend VM's external IP as shown above.
+
 ## Frontend VM
 
 Set `frontend/assets/js/config.js` to the backend VM's external IP:

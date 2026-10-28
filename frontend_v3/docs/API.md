@@ -47,7 +47,7 @@ implementation: when in doubt about a field, check what the mock returns.
 ## 2. Authentication
 
 - **Access token**: JWT, valid ~15 min, returned in the JSON body. The frontend keeps it in `sessionStorage`.
-- **Refresh token**: random string, valid 30 days (or session-only if `remember_me=false`), set by the backend as cookie
+- **Refresh token**: random string, valid 30 days, set by the backend as cookie
   `Set-Cookie: refresh_token=…; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`. Store only its hash.
 - Every page calls `POST /auth/refresh` when it loads (multi-page app → memory is lost on navigation). Rotate the refresh token on each call.
 
@@ -66,7 +66,7 @@ Creates the user with `onboarding_step = 2` and a first `body_weights` row. Sets
 `201 { "access_token": "…", "user": User }`
 
 ### `POST /auth/login` — public
-`{ "username": "lena.meier", "password": "…", "remember_me": true }` — `username` may also be the email.
+`{ "username": "lena.meier", "password": "…" }` — `username` may also be the email.
 `200 { "access_token": "…", "user": User }` · `401 invalid_credentials` with the **same message** for unknown user and wrong password. Rate limit: 5 failures / 15 min → 429.
 
 ### `POST /auth/refresh` — public (uses cookie)
